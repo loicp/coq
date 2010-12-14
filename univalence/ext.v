@@ -3,7 +3,8 @@
 include
 - simplification of his proof of extentionnality (2)
 - dependent extentionnality, following his suggestion. (3)
-- contradiction between univalence and uniqueness of identity proofs (then also with injectivity of dependent equality, axiom K of Streicher, etc, see http://coq.inria.fr/stdlib/Coq.Logic.EqdepFacts.html# 
+- contradiction between univalence and uniqueness of identity proofs (4) (then also with injectivity of dependent equality, axiom K of Streicher, etc, see http://coq.inria.fr/stdlib/Coq.Logic.EqdepFacts.html# 
+- full dependent extentionnality from JM dependent extentionnality and injectivity of dependent equality (5)
 *)
 
 Set Implicit Arguments.
