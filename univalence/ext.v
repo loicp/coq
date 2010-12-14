@@ -1,4 +1,11 @@
 (* coq-8.3 *)
+(* Some facts founded on the development of Vladimir Voevodsky (https://github.com/vladimirias/Foundations/tree/master/Proof%20of%20Extensionality)
+include
+- simplification of his proof of extentionnality (2)
+- dependent extentionnality, following his suggestion. (3)
+- contradiction between univalence and uniqueness of identity proofs (then also with injectivity of dependent equality, axiom K of Streicher, etc, see http://coq.inria.fr/stdlib/Coq.Logic.EqdepFacts.html# 
+*)
+
 Set Implicit Arguments.
 
 (* 1. Basic notions *)
