@@ -22,33 +22,31 @@ Definition pr1 :=  fun (T : Type) (P : T -> Type) (z : sigT P) =>
 Definition pr2 :=  fun (T : Type) (P : T -> Type) (z : sigT P) =>
       match z as z0 return (P (pr1 z0)) with  | existT _ x => x end.
 
-Definition singleton (T:Type) : Type :=  {c:T & forall t:T, t == c}.
+Definition iscontr (T:Type) : Type :=  {c:T & forall t:T, t == c}.
 
 Definition hfiber (X Y:Type)(f:X -> Y)(y:Y) : Type :=  {p:X & (f p) == y}. 
 
-Definition bijective (X Y:Type)(F:X -> Y) : Type := 
-   forall y:Y, singleton (hfiber F y) .
+Definition isweq (X Y:Type)(F:X -> Y) : Type := 
+   forall y:Y, iscontr (hfiber F y) .
 
-Definition weq (X Y:Type) : Type := {f:X->Y & bijective f} .
+Definition weq (X Y:Type) : Type := {f:X->Y & isweq f} .
 
 Notation "x ~~ y" := (weq x y) (at level 70).
 
-Definition injective(X Y:Type)(f:X->Y):= forall x y:X, f x == f y -> x == y.
-
 Lemma idbij:forall A:Type, A ~~ A.
-intros; unfold weq. exists (fun x => x). unfold bijective, singleton. intros. 
+intros; unfold weq. exists (fun x => x). unfold isweq, iscontr. intros. 
 unfold hfiber. exists (existT (fun p : A => p == y) y (idpath y)). intro.
 destruct t. destruct p. reflexivity. Defined.
 
 Definition V1 (X Y:Type)  : X == Y -> X ~~ Y.
 Proof. intros. destruct H. apply idbij. Defined. 
 
-(* Univalence axiom: V1 is bijective.
+(* Univalence axiom: V1 is isweq.
 One only need a weaker form: there exists V, a section of V1 *)
 
 Axiom V: forall X Y:Type,  X ~~ Y -> X == Y.
 
-Axiom V1V:forall X Y:Type, forall u: X ~~ Y, V1 (V u) == u.
+Axiom V1V:forall X Y:Type, forall u: X ~~ Y, V1 (V u) ==  u.
 
 (* 2. Proof of extentionnality of functions *)
 
@@ -74,7 +72,7 @@ intros. unfold delta, g1. destruct y. destruct s. destruct p. reflexivity.
 Defined.
 
 Lemma deltabij: Y ~~ (ps Y).
-intros. exists delta.  unfold bijective, singleton, hfiber. intros.
+intros. exists delta.  unfold isweq, iscontr, hfiber. intros.
 exists (existT (fun p : Y => delta p == y)  (g1 y) (deltag1id y)).
 intros. destruct t. destruct p. reflexivity. Defined.
 
@@ -84,9 +82,9 @@ Definition k(h:ps Y -> Y):= fun x:Y => h (delta x).
 
 Axiom etacor: forall (X Y:Type), forall (f:X -> Y), f == (fun x:X => f x).
 
-Lemma kinj: injective k.
-intros. unfold k. replace delta with (pr1 deltabij). rewrite <- (V1V deltabij). 
-generalize (V deltabij).  intro. destruct p. unfold injective; intros.
+Lemma kinj: forall h1 h2:ps Y->Y, k h1 == k h2 -> h1 == h2.
+unfold k. replace delta with (pr1 deltabij). rewrite <- (V1V deltabij). 
+generalize (V deltabij).  intro. destruct p.  intros.
 simpl in H. repeat rewrite <- etacor in H. assumption. reflexivity. Defined.
 
 Lemma g1g2: g1 == g2.
@@ -152,11 +150,11 @@ Inductive Bool:Type:= true | false.
 Definition b1(b:Bool) := b.
 Definition b2(b:Bool):= match b with true => false | false => true end.
 
-Lemma b1bij: bijective b1.
+Lemma b1bij: isweq b1.
 apply (pr2 (idbij Bool)). Defined.
 
-Lemma b2bij: bijective b2.
-unfold bijective. intros. unfold singleton. destruct y. unfold hfiber.
+Lemma b2bij: isweq b2.
+unfold isweq. intros. unfold iscontr. destruct y. unfold hfiber.
 exists (existT (fun p => b2 p == true)  false (idpath true)). 
 intro. destruct t. destruct x. unfold b2 in p.
 inversion p.  unfold b2 in p. assert (p == idpath true).
@@ -183,7 +181,7 @@ intros. inversion H. reflexivity. Defined.
 
 Theorem UVcontradictsUIP: False.
 assert (b1 == b2). generalize l1. intro.  unfold b1b, b2b in H.
-apply l2 with (P:= fun f : Bool -> Bool => bijective f) (px := pr2 (idbij Bool)) (py := b2bij).
+apply l2 with (P:= fun f : Bool -> Bool => isweq f) (px := pr2 (idbij Bool)) (py := b2bij).
 exact H. assert (b1 true == b2 true). rewrite H. reflexivity. unfold b1 in H0.  simpl in H0.
 inversion H0. Defined.
 
