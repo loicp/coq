@@ -1,6 +1,8 @@
 (* les accents 
 tapés dans github: é è et ê
-tapés dans coqide: \ufffd \ufffd et \ufffd *)
+tapés dans coqide: \ufffd \ufffd et \ufffd 
+western
+*)
 
 Class Zero (A : Type) := zero : A.
 Notation "0" := zero.
