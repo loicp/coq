@@ -1,4 +1,4 @@
-(* les a
+(* accents é è ê
 *)
 
 Class Zero (A : Type) := zero : A.
