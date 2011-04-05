@@ -1,4 +1,4 @@
-(* les accents é è et ê *)
+(* les accents Ã© Ã¨ et Ãª ï¿½ ï¿½ et ï¿½ *)
 Class Zero (A : Type) := zero : A.
 Notation "0" := zero.
 Class One (A : Type) := one : A.
