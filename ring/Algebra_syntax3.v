@@ -6,6 +6,7 @@ utf-8 et none (dictionnaire)
 \ufffd \ufffd (tapes local)
 é è (tapes github)
 é è é è (tapes local)
+aa
 *)
 
 Class Zero (A : Type) := zero : A.
