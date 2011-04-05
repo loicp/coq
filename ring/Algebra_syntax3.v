@@ -1,6 +1,6 @@
 (* les accents 
 tapés dans github: é è et ê
-tapés dans coqide: \ufffd \ufffd et \ufffd 
+tapés dans coqide: é è et ê
 utf-8 et none (dictionnaire)
 *)
 
