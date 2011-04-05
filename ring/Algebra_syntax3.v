@@ -1,4 +1,5 @@
 (* accents é è ê
+modif de coqbis
 *)
 
 Class Zero (A : Type) := zero : A.
