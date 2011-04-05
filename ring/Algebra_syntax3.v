@@ -1,7 +1,8 @@
 (* les accents 
-tapés dans github: é è et ê
-tapés dans coqide: é è et ê
+tapï¿½s dans github: ï¿½ ï¿½ et ï¿½
+tapï¿½s dans coqide: ï¿½ ï¿½ et ï¿½
 utf-8 et none (dictionnaire)
+Ã© Ã¨
 *)
 
 Class Zero (A : Type) := zero : A.
