@@ -73,23 +73,14 @@ Instance power_ring {R:Type}`{Rr:Ring} : Power:=
 
 (** Interpretation morphisms definition*)
 
-Class Ring_morphism (C R:Type)`{Ring C} `{Ring R}:= {
-    ring_morphism_fun: C -> R;
-    ring_morphism0    : ring_morphism_fun 0 == 0;
-    ring_morphism1    : ring_morphism_fun 1 == 1;
-    ring_morphism_add : \/x y, ring_morphism_fun (x + y)
-                     == ring_morphism_fun x + ring_morphism_fun y;
-    ring_morphism_sub : \/x y, ring_morphism_fun (x - y)
-                     == ring_morphism_fun x - ring_morphism_fun y;
-    ring_morphism_mul : \/x y, ring_morphism_fun (x * y)
-                     == ring_morphism_fun x * ring_morphism_fun y;
-    ring_morphism_opp : \/ x, ring_morphism_fun (-x)
-                          == -(ring_morphism_fun x);
-    ring_morphism_eq  : \/x y, x == y
-       -> ring_morphism_fun x == ring_morphism_fun y}.
-
-Instance bracket_ring `{Ring_morphism}: Bracket C R :=
-  ring_morphism_fun.
+Class Ring_morphism (C R:Type)`{Ring C} `{Ring R}`{Bracket C R}:= {
+    ring_morphism0    : [0] == 0;
+    ring_morphism1    : [1] == 1;
+    ring_morphism_add : \/x y, [x + y] == [x] + [y];
+    ring_morphism_sub : \/x y, [x - y] == [x] - [y];
+    ring_morphism_mul : \/x y, [x * y] == [x] * [y];
+    ring_morphism_opp : \/ x, [-x] == -[x];
+    ring_morphism_eq  : \/x y, x == y -> [x] == [y]}.
 
 Section Ring.
 
@@ -142,13 +133,13 @@ Qed.
  Qed.
 
  (** Identity is a morphism *)
- 
- Instance IDmorph : Ring_morphism.
+ (*
+ Instance IDmorph : Ring_morphism _ _ _  (fun x => x).
  Proof.
   apply (Build_Ring_morphism H6 H6 (fun x => x));intros;
   try reflexivity. trivial.
  Qed.
-
+*)
  (** rings are almost rings*)
  Lemma ring_mul_0_l : \/ x, 0 * x == 0.
  Proof.
@@ -290,7 +281,7 @@ Ltac gen_rewrite :=
 Ltac gen_add_push x :=
 repeat (match goal with
   | |- context [(?y + x) + ?z] =>
-     progress rewrite (@ring_add_assoc2 _ _ x y z)
+     progress rewrite (ring_add_assoc2 x y z)
   | |- context [(x + ?y) + ?z] =>
-     progress rewrite  (@ring_add_assoc1 _ _ x y z)
+     progress rewrite  (ring_add_assoc1 x y z)
   end).

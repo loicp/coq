@@ -64,7 +64,7 @@ Instance equalityb_pol : Equalityb Pol :=
 (* Q a ses variables de queue < i *)
  Definition mkPX P i n Q :=
   match P with
-  | Pc c => if c =? cO then Q else PX P i n Q 
+  | Pc c => if c =? 0 then Q else PX P i n Q 
   | PX P' i' n' Q' => 
        match Pcompare i i' Eq with
         | Eq => if Q' =? P0 then PX P' i (n + n') Q else PX P i n Q
@@ -149,8 +149,8 @@ Definition Psub(P P':Pol):= P ++ (--P').
   end.
 
  Definition PmulC P c :=
-  if c =? cO then P0 else
-  if c =? cI then P else PmulC_aux P c.
+  if c =? 0 then P0 else
+  if c =? 1 then P else PmulC_aux P c.
 
  Fixpoint Pmul (P1 P2 : Pol) {struct P2} : Pol :=
    match P2 with
@@ -216,9 +216,9 @@ trivial.
  Lemma Peq_ok : forall P P',
     (P =? P') = true -> forall l, P@l == P'@ l.
  Proof.
-  induction P;destruct P';simpl;intros;try discriminate;trivial. apply ring_morphism_eq.
+  induction P;destruct P';simpl;intros;try discriminate;trivial.
+ apply ring_morphism_eq.
  apply Ceqb_eq ;trivial.
-
   assert (H1h := IHP1 P'1);assert (H2h := IHP2 P'2).
    simpl in H1h. destruct (Peq P2 P'1). simpl in H2h; 
 destruct (Peq P3 P'2).
@@ -226,41 +226,40 @@ destruct (Peq P3 P'2).
 assert (H3h := Pcompare_Eq_eq p p1);
  destruct ((p ?= p1)%positive Eq);
 assert (H4h := Pcompare_Eq_eq p0 p2);
-destruct ((p0 ?= p2)%positive Eq); try (discriminate Hh).
- rewrite H3h;trivial. rewrite H4h;trivial. reflexivity. 
+destruct ((p0 ?= p2)%positive Eq); try (discriminate H17).
+ rewrite H3h;trivial. rewrite H4h;trivial. reflexivity.
  destruct ((p ?= p1)%positive Eq); destruct ((p0 ?= p2)%positive Eq);
- try (discriminate Hh).
+ try (discriminate H17).
  destruct ((p ?= p1)%positive Eq); destruct ((p0 ?= p2)%positive Eq);
- try (discriminate Hh). 
+ try (discriminate H17). 
  Qed.
 
  Lemma Pphi0 : forall l, P0@l == 0.
  Proof.
-  intros;simpl. unfold cO. rewrite ring_morphism0. reflexivity.
+  intros;simpl. 
+ rewrite ring_morphism0. reflexivity.
  Qed.
 
  Lemma Pphi1 : forall l,  P1@l == 1.
  Proof.
-  intros;simpl; unfold cI; rewrite ring_morphism1. reflexivity.
+  intros;simpl; rewrite ring_morphism1. reflexivity.
  Qed.
 
- Let pow_pos_Pplus :=
-    pow_pos_Pplus Rr.
-
  Lemma mkPX_ok : forall l P i n Q,
-  (mkPX P i n Q)@l == P@l * (pow_pos Rr (nth 0 i l) n) + Q@l.
+  (mkPX P i n Q)@l == P@l * (pow_pos (nth 0 i l) n) + Q@l.
  Proof.
   intros l P i n Q;unfold mkPX.
   destruct P;try (simpl;reflexivity).
-  assert (H := ring_morphism_eq  c cO). simpl; case_eq (Ceqb c cO);simpl;try reflexivity.
+  assert (Hh := ring_morphism_eq  c 0). 
+simpl; case_eq (Ceqb c 0);simpl;try reflexivity.
 intros.
-  rewrite H. rewrite ring_morphism0.
-  rsimpl. apply Ceqb_eq. trivial. assert (H1 := Pcompare_Eq_eq i p);
+  rewrite Hh. rewrite ring_morphism0.
+  rsimpl. apply Ceqb_eq. trivial. assert (Hh1 := Pcompare_Eq_eq i p);
 destruct ((i ?= p)%positive Eq).
-  assert (H := @Peq_ok P3 P0). case_eq (P3=? P0). intro. simpl. 
-  rewrite H. 
+  assert (Hh := @Peq_ok P3 P0). case_eq (P3=? P0). intro. simpl. 
+  rewrite Hh. 
   rewrite Pphi0. rsimpl. rewrite Pplus_comm. rewrite pow_pos_Pplus;rsimpl.
-rewrite H1;trivial. reflexivity. trivial. intros. simpl. reflexivity. simpl. reflexivity.
+rewrite Hh1;trivial. reflexivity. trivial. intros. simpl. reflexivity. simpl. reflexivity.
  simpl. reflexivity.
  Qed.
 
@@ -275,45 +274,44 @@ Ltac Esimpl :=
        end
    | |- context [[?c]] =>
        match c with
-       | cO => rewrite ring_morphism0
-       | cI => rewrite ring_morphism1
+       | 0 => rewrite ring_morphism0
+       | 1 => rewrite ring_morphism1
        | ?x + ?y => rewrite ring_morphism_add
        | ?x * ?y => rewrite ring_morphism_mul
        | ?x - ?y => rewrite ring_morphism_sub
        | - ?x => rewrite ring_morphism_opp
        end
    end));
-  ring_simpl; rsimpl.
+  simpl; rsimpl.
 
  Lemma PaddCl_ok : forall c P l, (PaddCl c P)@l == [c] + P@l .
  Proof.
-  induction P; ring_simpl; intros; Esimpl; try reflexivity.
- rewrite ring_morphism_add. try reflexivity.
+  induction P; simpl; intros; Esimpl; try reflexivity.
  rewrite IHP2. rsimpl. 
-rewrite (ring_add_comm  (P2 @ l * pow_pos Rr (nth 0 p l) p0) [c]).
+rewrite (ring_add_comm  (P2 @ l * pow_pos (nth 0 p l) p0) [c]).
 reflexivity.
  Qed.
 
  Lemma PmulC_aux_ok : forall c P l, (PmulC_aux P c)@l ==  P@l * [c].
  Proof.
-  induction P;ring_simpl;intros.  rewrite ring_morphism_mul.
+  induction P;simpl;intros.  rewrite ring_morphism_mul.
 try reflexivity.
-  rewrite IHP1;rewrite IHP2;rsimpl. 
- Qed.
+  simpl. Esimpl.  rewrite IHP1;rewrite IHP2;rsimpl. 
+  repeat rewrite  phiCR_comm. Esimpl.  Qed.
 
  Lemma PmulC_ok : forall c P l, (PmulC P c)@l ==  P@l * [c].
  Proof.
   intros c P l; unfold PmulC.
-  assert (H:= ring_morphism_eq c cO);case_eq (c =? cO). intros.
-  rewrite H;Esimpl. apply Ceqb_eq;trivial. 
-  assert (H1:= ring_morphism_eq c cI);case_eq (c =? cI);intros.
-  rewrite H1;Esimpl. apply Ceqb_eq;trivial.
+  assert (Hh:= ring_morphism_eq c 0);case_eq (c =? 0). intros.
+  rewrite Hh;Esimpl. apply Ceqb_eq;trivial. 
+  assert (H1h:= ring_morphism_eq c 1);case_eq (c =? 1);intros.
+  rewrite H1h;Esimpl. apply Ceqb_eq;trivial.
   apply PmulC_aux_ok.
  Qed.
 
  Lemma Popp_ok : forall P l, (--P)@l == - P@l.
  Proof.
-  induction P;ring_simpl;intros.
+  induction P;simpl;intros.
   Esimpl.
   rewrite IHP1;rewrite IHP2;rsimpl.
  Qed.
@@ -356,49 +354,49 @@ Lemma PaddX_ok2 : forall P2,
    /\
    (forall P k n l,
            (PaddX Padd P2 k n P) @ l == 
-             P2 @ l * pow_pos Rr (nth 0 k l) n  + P @ l).
-induction P2;ring_simpl;intros. split. intros. apply PaddCl_ok.
+             P2 @ l * pow_pos (nth 0 k l) n  + P @ l).
+induction P2;simpl;intros. split. intros. apply PaddCl_ok.
  induction P.  unfold PaddX. intros. rewrite mkPX_ok.
- ring_simpl. rsimpl.
-intros. ring_simpl. assert (H := Pcompare_Eq_eq k p);
+ simpl. rsimpl.
+intros. simpl. assert (Hh := Pcompare_Eq_eq k p);
  destruct ((k ?= p)%positive Eq).
- assert (H1 := ZPminus_spec n p0);destruct (ZPminus n p0). Esimpl2.
-rewrite H; trivial. rewrite H1. reflexivity.
-ring_simpl. rewrite mkPX_ok. rewrite IHP1. Esimpl2.
- rewrite Pplus_comm in H1.
-rewrite H1. 
+ assert (H1h := ZPminus_spec n p0);destruct (ZPminus n p0). Esimpl2.
+rewrite Hh; trivial. rewrite H1h. reflexivity.
+simpl. rewrite mkPX_ok. rewrite IHP1. Esimpl2.
+ rewrite Pplus_comm in H1h.
+rewrite H1h. 
 rewrite pow_pos_Pplus.  Esimpl2.
-rewrite H; trivial. reflexivity.
-rewrite mkPX_ok. rewrite PaddCl_ok. Esimpl2. rewrite Pplus_comm in H1.
-rewrite H1.  Esimpl2. rewrite pow_pos_Pplus. Esimpl2.
-rewrite H; trivial. reflexivity.
+rewrite Hh; trivial. reflexivity.
+rewrite mkPX_ok. rewrite PaddCl_ok. Esimpl2. rewrite Pplus_comm in H1h.
+rewrite H1h.  Esimpl2. rewrite pow_pos_Pplus. Esimpl2.
+rewrite Hh; trivial. reflexivity.
 rewrite mkPX_ok. rewrite IHP2. Esimpl2.
-rewrite (ring_add_comm  (P2 @ l * pow_pos Rr (nth 0 p l) p0) 
-                             ([c] * pow_pos Rr (nth 0 k l) n)).
-reflexivity.  assert (H1 := ring_morphism_eq c cO);case_eq (Ceqb c  cO); 
- intros; ring_simpl.
-rewrite H1;trivial. Esimpl2. apply Ceqb_eq; trivial. reflexivity.
+rewrite (ring_add_comm  (P2 @ l * pow_pos (nth 0 p l) p0) 
+                             ([c] * pow_pos (nth 0 k l) n)).
+reflexivity.  assert (H1h := ring_morphism_eq c 0);case_eq (Ceqb c  0); 
+ intros; simpl.
+rewrite H1h;trivial. Esimpl2. apply Ceqb_eq; trivial. reflexivity.
 decompose [and] IHP2_1. decompose [and] IHP2_2. clear IHP2_1 IHP2_2.
-split. intros. rewrite H0. rewrite H1.
+split. intros. rewrite H18. rewrite H19.
 Esimpl2.
-induction P. unfold PaddX. intros. rewrite mkPX_ok. ring_simpl. reflexivity.
+induction P. unfold PaddX. intros. rewrite mkPX_ok. simpl. reflexivity.
 intros. rewrite PaddXPX. 
-assert (H3 := Pcompare_Eq_eq k p1);
+assert (H3h := Pcompare_Eq_eq k p1);
  destruct ((k ?= p1)%positive Eq).
-assert (H4 := ZPminus_spec n p2);destruct (ZPminus n p2). 
-rewrite mkPX_ok. ring_simpl. rewrite H0. rewrite H1. Esimpl2.
-rewrite H4. rewrite H3;trivial. reflexivity.
-rewrite mkPX_ok. rewrite IHP1. Esimpl2. rewrite H3;trivial.
-rewrite Pplus_comm in H4.
-rewrite H4. rewrite pow_pos_Pplus. Esimpl2.
-rewrite mkPX_ok. ring_simpl. rewrite H0. rewrite H1. 
+assert (H4h := ZPminus_spec n p2);destruct (ZPminus n p2). 
+rewrite mkPX_ok. simpl. rewrite H18. rewrite H19. Esimpl2.
+rewrite H4h. rewrite H3h;trivial. reflexivity.
+rewrite mkPX_ok. rewrite IHP1. Esimpl2. rewrite H3h;trivial.
+rewrite Pplus_comm in H4h.
+rewrite H4h. rewrite pow_pos_Pplus. Esimpl2.
+rewrite mkPX_ok. simpl. rewrite H18. rewrite H19. 
 rewrite mkPX_ok.
- Esimpl2. rewrite H3;trivial.
- rewrite Pplus_comm in H4.
-rewrite H4. rewrite pow_pos_Pplus. Esimpl2.
-rewrite mkPX_ok. ring_simpl. rewrite IHP2. Esimpl2.
-gen_add_push (P2 @ l * pow_pos Rr (nth 0 p1 l) p2). try reflexivity.
-rewrite mkPX_ok. ring_simpl. reflexivity.
+ Esimpl2. rewrite H3h;trivial.
+ rewrite Pplus_comm in H4h.
+rewrite H4h. rewrite pow_pos_Pplus. Esimpl2.
+rewrite mkPX_ok. simpl. rewrite IHP2. Esimpl2.
+gen_add_push (P2 @ l * pow_pos (nth 0 p1 l) p2). try reflexivity.
+rewrite mkPX_ok. simpl. reflexivity.
 Qed.
 
 Lemma Padd_ok : forall P Q l, (P ++ Q) @ l == P @ l + Q @ l.
@@ -406,7 +404,7 @@ intro P. elim (PaddX_ok2 P); auto.
 Qed.
 
 Lemma PaddX_ok : forall P2 P k n l,
-   (PaddX Padd P2 k n P) @ l ==  P2 @ l * pow_pos Rr (nth 0 k l) n  + P @ l.
+   (PaddX Padd P2 k n P) @ l ==  P2 @ l * pow_pos (nth 0 k l) n  + P @ l.
 intro P2. elim (PaddX_ok2 P2); auto.
 Qed.
 
@@ -415,7 +413,7 @@ unfold Psub. intros. rewrite Padd_ok. rewrite Popp_ok. rsimpl.
  Qed.
 
  Lemma Pmul_ok : forall P P' l, (P**P')@l == P@l * P'@l.
-induction P'; ring_simpl; intros. rewrite PmulC_ok. reflexivity.
+induction P'; simpl; intros. rewrite PmulC_ok. reflexivity.
 rewrite PaddX_ok. rewrite IHP'1. rewrite IHP'2. Esimpl2.
 Qed.
 
@@ -442,7 +440,7 @@ Qed.
   Variable rpow : R -> Cpow -> R.
 
   Record power_theory : Prop := mkpow_th {
-    rpow_pow_N : forall r n,  (rpow r (Cp_phi n))== (pow_N Rr r n)
+    rpow_pow_N : forall r n,  (rpow r (Cp_phi n))== (pow_N r n)
   }.
 
  End POWER.
@@ -471,7 +469,7 @@ Strategy expand [PEeval].
 
  Lemma mkX_ok : forall p l, nth 0 p l == (mk_X p) @ l.
  Proof.
-  destruct p;ring_simpl;intros;Esimpl;trivial.
+  destruct p;simpl;intros;Esimpl;trivial.
  Qed.
 
  Ltac Esimpl3 :=
@@ -508,7 +506,7 @@ Lemma Ppow_pos_ok : forall l, (forall P, subst_l P@l == P@l) ->
          forall res P p, (Ppow_pos res P p)@l == (pow_pos_gen Pmul P p)@l * res@l.
   Proof.
    intros l subst_l_ok res P p. generalize res;clear res.
-   induction p;ring_simpl;intros. try rewrite subst_l_ok.
+   induction p;simpl;intros. try rewrite subst_l_ok.
  repeat rewrite Pmul_ok. repeat rewrite IHp.
    rsimpl. repeat rewrite Pmul_ok. repeat rewrite IHp. rsimpl.
  try rewrite subst_l_ok.
@@ -523,7 +521,7 @@ Definition pow_N_gen (R:Type)(x1:R)(m:R->R->R)(x:R) (p:N) :=
 
   Lemma Ppow_N_ok : forall l,  (forall P, subst_l P@l == P@l) ->
          forall P n, (Ppow_N P n)@l == (pow_N_gen P1 Pmul P n)@l.
-  Proof.  destruct n;ring_simpl. reflexivity. rewrite Ppow_pos_ok; trivial. Esimpl.  Qed.
+  Proof.  destruct n;simpl. reflexivity. rewrite Ppow_pos_ok; trivial. Esimpl.  Qed.
 
  End POWER2.
 
@@ -556,21 +554,21 @@ Definition pow_N_gen (R:Type)(x1:R)(m:R->R->R)(x:R) (p:N) :=
   Proof.
    intros.
    induction pe.
-Esimpl3. Esimpl3. ring_simpl.
+Esimpl3. Esimpl3. simpl.
  rewrite IHpe1;rewrite IHpe2.
  destruct pe2; Esimpl3. 
 unfold Psub.
 destruct pe1. destruct pe2. Esimpl3. Esimpl3. Esimpl3. Esimpl3. Esimpl3. Esimpl3.
  Esimpl3. Esimpl3. Esimpl3. Esimpl3. Esimpl3. Esimpl3. Esimpl3.
-ring_simpl. unfold Psub. rewrite IHpe1;rewrite IHpe2.
+simpl. unfold Psub. rewrite IHpe1;rewrite IHpe2.
 destruct pe1. destruct pe2. Esimpl3. Esimpl3. Esimpl3. Esimpl3. Esimpl3. Esimpl3.
  Esimpl3. Esimpl3. Esimpl3. Esimpl3. Esimpl3. Esimpl3. Esimpl3.
-ring_simpl. rewrite IHpe1;rewrite IHpe2. rewrite Pmul_ok. reflexivity.
-ring_simpl. rewrite IHpe; Esimpl3. 
-ring_simpl.
+simpl. rewrite IHpe1;rewrite IHpe2. rewrite Pmul_ok. reflexivity.
+simpl. rewrite IHpe; Esimpl3. 
+simpl.
    rewrite Ppow_N_ok; (intros;try reflexivity). 
    rewrite rpow_pow_N.  Esimpl3.
-   induction n;ring_simpl. Esimpl3. induction p; ring_simpl.
+   induction n;simpl. Esimpl3. induction p; simpl.
   try rewrite IHp;try rewrite IHpe;
  repeat rewrite Pms_ok;
       repeat rewrite Pmul_ok;reflexivity.
@@ -612,7 +610,7 @@ exact pow_th.
    (norm_subst pe1 =? norm_subst pe2) = true ->
    PEeval l pe1 == PEeval l pe2.
  Proof.
-  ring_simpl;intros.
+  simpl;intros.
   do 2 (rewrite (norm_subst_ok l);trivial).
   apply Peq_ok;trivial.
  Qed.

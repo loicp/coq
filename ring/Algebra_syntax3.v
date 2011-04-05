@@ -1,7 +1,3 @@
-(* accents é è ê
-modif de coqbis
-*)
-
 Class Zero (A : Type) := zero : A.
 Notation "0" := zero.
 Class One (A : Type) := one : A.
