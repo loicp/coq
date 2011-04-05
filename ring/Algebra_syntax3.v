@@ -1,4 +1,4 @@
-
+(* les accents é è et ê *)
 Class Zero (A : Type) := zero : A.
 Notation "0" := zero.
 Class One (A : Type) := one : A.
@@ -15,7 +15,6 @@ Notation "x - y" := (subtraction x y).
 Class Opposite (A : Type) := opposite : A -> A.
 Notation "-_" := opposite.
 Notation "- x" := (opposite(x)).
-(* on garde la version curryfiée, pour garder rewrite *)
 Class Equality {A : Type}:= equality : A -> A -> Prop.
 Notation "_==_" := equality.
 Notation "x == y" := (equality x y) (at level 70, no associativity).
