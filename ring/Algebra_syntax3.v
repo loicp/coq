@@ -1,7 +1,7 @@
 (* les accents 
 tapés dans github: é è et ê
 tapés dans coqide: \ufffd \ufffd et \ufffd 
-western
+utf-8 et none (dictionnaire)
 *)
 
 Class Zero (A : Type) := zero : A.
