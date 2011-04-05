@@ -4,9 +4,10 @@ tap\ufffds dans coqide: \ufffd \ufffd et \ufffd
 utf-8 et none (dictionnaire)
 \ufffd \ufffd apparemment, de github a local ca recupere les accents
 \ufffd \ufffd (tapes local)
-é è (tapes github)
-é è é è (tapes local)
+ï¿½ ï¿½ (tapes github)
+ï¿½ ï¿½ ï¿½ ï¿½ (tapes local)
 aaaa
+bbbbb
 *)
 
 Class Zero (A : Type) := zero : A.
