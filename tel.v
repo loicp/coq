@@ -45,17 +45,15 @@ Fixpoint tel_to_prod(t:tel)(T0T:Type):Type:=
     | Tc T P => \/x:T, (tel_to_prod (P x) T0T)
   end.
 
-Eval compute in tel_to_prod monoide.
-
-Inductive tel_record(t:tel):Type:=
-  | build_tel_record:tel_to_prod t (tel_record t).
+Eval compute in (tel_to_prod monoide Type).
 
 Fixpoint tel_to_fun(t:tel)(T0T:Type)(t0:T0T):tel_to_prod t T0T:=
-  match t with
+  match t as t2 return (tel_to_prod t2 T0T) with
     | T0 => t0
-    | Tc T P => \x:T, (tel_to_fun (P x) T0T t0)
+    | Tc T P => \x:T, (tel_to_fun (P x) t0)
   end.
-Eval compute in tel_to_fun monoide.
+
+Eval compute in (tel_to_fun monoide nat).
 
 Definition tel_type(t:tel):Type:=
  match t with T0 => True | Tc T P => T end.
@@ -82,7 +80,7 @@ Lemma plusb_zero:\/a, plusb a zerob = a.
 induction a; simpl; auto.
 Qed.
 
-Definition monoide2_Bool: el_tel monoide:=
+Definition monoide_Bool: el_tel monoide:=
   @el_Tc Type Bool _
   (el_Tc plusb _
   (el_Tc zero _
@@ -90,8 +88,54 @@ Definition monoide2_Bool: el_tel monoide:=
   (el_Tc plusb_zero _ 
   el_T0)))).
 
-Inductive tel_record(t:tel):=
+(*
+Le n-ième type d'un télescope.
+*)
+
+Fixpoint tel_nth(t:tel)(e:el_tel t)(n:nat):Type:=
+  match n with 
+   | O => match t with T0 => Prop | Tc T f => T end
+   | S n1 => match e with
+                    | el_T0 => Prop
+                    | el_Tc T x f e1 => @tel_nth (f x) e1 n1
+  end end.
+Eval compute -[plusb zero] in tel_nth monoide_Bool 0.
+Eval compute -[plusb zero] in tel_nth monoide_Bool 1%nat.
+Eval compute -[plusb zero] in tel_nth monoide_Bool 2%nat.
+Eval compute -[plusb zero] in tel_nth monoide_Bool 3%nat.
+
+(*
+Le nième élément d'un élément de télescope.
+*)
+
+Fixpoint el_nth(t:tel)(e:el_tel t)(n:nat):tel_nth e n:=
+  match n with 
+   | O => match e with el_T0 => True | el_Tc T x f e1 => x end
+   | S n1 => match e with
+                    | el_T0 => True
+                    | el_Tc T x f e1 => @el_nth (f x) e1 n1
+  end end.
+
+Eval compute -[plusb zero] in el_nth monoide_Bool 0.
+Eval compute -[plusb zero] in el_nth monoide_Bool 1%nat.
+Eval compute -[plusb zero] in el_nth monoide_Bool 2%nat.
+Eval compute -[plusb zero] in el_nth monoide_Bool 3%nat.
  
+Definition monoid_carrier(m:el_tel monoide):= el_nth m 0.
+Definition monoid_plus(m:el_tel monoide):= el_nth m 1.
+Definition monoid_zero(m:el_tel monoide):= el_nth m 2.
+Definition monoid_plusassoc(m:el_tel monoide):= el_nth m 3.
+Definition monoid_pluszero(m:el_tel monoide):= el_nth m 4.
+
+Eval compute -[plusb zero] in monoid_plus monoide_Bool.
+Eval compute -[plusb zero] in monoid_zero monoide_Bool.
+Eval compute -[plusb zero] in monoid_carrier monoide_Bool.
+
+Class Monoide`{el_tel monoide}:Type.
+Instance Monoide_Bool:@Monoide monoide_Bool.
+
+Check monoid
+
 (* Fonctions de déstructuration de ces éléments. *)
 Definition el_fst: (t:tel) (e:(el_tel t))(tel_type t).
 Intros t e; Try Assumption.
