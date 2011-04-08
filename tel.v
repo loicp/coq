@@ -94,14 +94,19 @@ Fixpoint eln(t:tel)(e:el t)(n:nat){struct n}:teln e n:=
    | S n1 => eln (elr e) n1 
   end.
 
-(* avec les classes de types *)
+Notation "|| x : T , P" := (Tc (\x : T, P))(at level 200, x ident, right associativity).  
+Notation "|| '_' : T , P" := (Tc (\_ : T, P))(at level 200, right associativity).  
+Notation "|| '_' : T" := (Tc (\_ : T, T0))(at level 200, right associativity).
+
+(* exemple avec les classes de types *)
 
 Class Magmaa:Type :=
-  emagmaa:
-  el (Tc (\A:Type,
-     (Tc (\plus:Addition A,
-     (Tc (\plus_assoc: \/x y z:A, (x + y) + z = x + (y + z),
-     T0)))))).
+  magmaa:
+  el
+  (||A : Type,
+   ||plus : Addition A,
+   ||_  : \/ x :A, (\/ y :A, (\/ z :A, x + y + z = x + (y + z)))
+  ).
 
 Definition carrier(m:Magmaa):Type :=
   Eval compute -[elr el1] in eln m 0.
@@ -123,11 +128,21 @@ Lemma plusb_assoc:\/a b c, plusb (plusb a b) c = plusb a (plusb b c).
 induction a;induction b; induction c; simpl; auto.
 Qed.
 
-Definition Bmagmaa: el magmaa:=
-  @el_Tc Type Bool _
+Definition Bmagmaa: Magmaa:=
+   @el_Tc Type Bool _
   (el_Tc plusb _
   (el_Tc plusb_assoc _
   el_T0)).
+Print Bmagmaa.
+
+Notation "\\ x ; e1" := (el_Tc x _ e1)(at level 200, right associativity).  
+Notation "\\ x ; " := (el_Tc x _ el_T0)(at level 200, right associativity).  
+Print Bmagmaa.
 
 Instance Magmaa_Bool:Magmaa := Bmagmaa.
 
+Goal  \/x y z:Bmagmaa, (x+y)+z = x+(y+z).
+intros. 
+rewrite (eln Bmagmaa 2).
+trivial.
+Qed.
