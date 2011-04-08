@@ -114,7 +114,7 @@ Coercion carrier:Magmaa >-> Sortclass.
 
 Instance magmaa_plus(m:Magmaa):Addition m:= eln m 1.
 
-Goal  \/m:Magmaa, \/x y z:m, (x+y)+z = x+(y+z).
+Lemma l1:\/m:Magmaa, \/x y z:m, (x+y)+z = x+(y+z).
 intros. 
 rewrite (eln m 2).
 trivial.
@@ -128,27 +128,49 @@ Fixpoint add_tel(t:tel): (el t -> tel) -> tel:=
                 add_tel (\e: el (f x), ft (el_Tc x _ e)))
    end.
 
-Definition tel_monoide := Eval compute -[addition zero] in
-  add_tel
-  (\m:Magmaa,
+Fixpoint coerce_tel(t:tel):\/ft:el t -> tel, el (add_tel ft) -> el t:=
+  match
+    t as t1 return (\/ ft :el t1 -> tel, el (add_tel ft) -> el t1)
+  with
+    | T0 => \ ft : el T0 -> tel, (fun _ : el (add_tel ft) => el_T0)
+    | Tc T t1 =>
+      \ ft : el (Tc t1) -> tel,
+      (\ e : el (add_tel ft),
+        el_Tc (el1 e) t1
+        (coerce_tel
+          (\ e2 : el (t1 (el1 e)), ft (el_Tc (el1 e) t1 e2))
+          (elr e)))
+  end.
+
+Definition tel_monoide_diff(m:Magmaa):=
     || zero:Zero m;
     || _ : \/x:m, 0+x = x;
-    || _ : \/x:m, x+0 = x).
-
+    || _ : \/x:m, x+0 = x.
+Definition tel_monoide := Eval compute -[addition zero] in
+  add_tel tel_monoide_diff.
 Print tel_monoide.
 
-Class Monoide:Type := monoide: el tel_monoide.
-Definition carrier2(m:Monoide):Type :=
-  Eval compute -[elr el1] in eln m 0.
-Coercion carrier2:Monoide >-> Sortclass.
-Instance monoide_plus(m:Monoide):Addition m:= eln m 1.
+Class Monoide:Type :=  
+  monoide: el tel_monoide.
+Definition Monoide_Magmaa: Monoide -> Magmaa:=
+  coerce_tel tel_monoide_diff.
+Coercion Monoide_Magmaa: Monoide >-> Magmaa.
 Instance monoide_zero(m:Monoide):Zero m:= eln m 3.
 
-Goal \/m:Monoide, \/x:m, x+0 = x.
+Lemma l2:\/m:Monoide, \/x:m, x+0 = x.
 intros. 
 rewrite (eln m 5).
 trivial.
 Qed.
+
+Lemma l3:\/m:Monoide, \/x y z:m, (x+y)+z = x+(y+z).
+intros. 
+apply l1.
+(* ca rame, avec 
+rewrite (eln m 5).
+trivial.*)
+Qed.
+
 
 (* exemple d'instance *)
 
