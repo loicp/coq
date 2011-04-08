@@ -55,8 +55,8 @@ Inductive tel: Type :=
   | Tc: forall T:Type, (T -> tel) -> tel .
 
 Inductive el: tel ->Type :=
-  |el_T0: (el T0)
-  |el_Tc: forall (T:Type) (x:T) (f:T -> tel),
+  | el_T0: (el T0)
+  | el_Tc: forall (T:Type) (x:T) (f:T -> tel),
             (el (f x)) -> (el (Tc f)) .
 
 Definition tel1(t:tel):=
@@ -94,19 +94,19 @@ Fixpoint eln(t:tel)(e:el t)(n:nat){struct n}:teln e n:=
    | S n1 => eln (elr e) n1 
   end.
 
-Notation "|| x : T , P" := (Tc (\x : T, P))(at level 200, x ident, right associativity).  
-Notation "|| '_' : T , P" := (Tc (\_ : T, P))(at level 200, right associativity).  
+Notation "|| x : T ; P" := (Tc (\x : T, P))(at level 200, x ident, right associativity).  
+Notation "|| x : T" := (Tc (\x : T, T0))(at level 200, x ident, right associativity).  
+Notation "|| '_' : T ; P" := (Tc (\_ : T, P))(at level 200, right associativity).  
 Notation "|| '_' : T" := (Tc (\_ : T, T0))(at level 200, right associativity).
 
 (* exemple avec les classes de types *)
 
-Class Magmaa:Type :=
-  magmaa:
-  el
-  (||A : Type,
-   ||plus : Addition A,
-   ||_  : \/ x :A, (\/ y :A, (\/ z :A, x + y + z = x + (y + z)))
-  ).
+Definition tel_magmaa :=
+  || A : Type;
+  || plus : Addition A;
+  || _ : \/ x :A, (\/ y :A, (\/ z :A, x + y + z = x + (y + z))).
+
+Class Magmaa:Type := magmaa: el tel_magmaa.
 
 Definition carrier(m:Magmaa):Type :=
   Eval compute -[elr el1] in eln m 0.
@@ -120,7 +120,37 @@ rewrite (eln m 2).
 trivial.
 Qed.
 
-(* exemple *)
+Fixpoint add_tel(t:tel): (el t -> tel) -> tel:=
+   match t as t0 return (el t0 -> tel) -> tel with
+     | T0 => \ft: el T0 -> tel, ft el_T0
+     | Tc T f => \ft: el (Tc f) -> tel, 
+         Tc (\x:T, 
+                add_tel (\e: el (f x), ft (el_Tc x _ e)))
+   end.
+
+Definition tel_monoide := Eval compute -[addition zero] in
+  add_tel
+  (\m:Magmaa,
+    || zero:Zero m;
+    || _ : \/x:m, 0+x = x;
+    || _ : \/x:m, x+0 = x).
+
+Print tel_monoide.
+
+Class Monoide:Type := monoide: el tel_monoide.
+Definition carrier2(m:Monoide):Type :=
+  Eval compute -[elr el1] in eln m 0.
+Coercion carrier2:Monoide >-> Sortclass.
+Instance monoide_plus(m:Monoide):Addition m:= eln m 1.
+Instance monoide_zero(m:Monoide):Zero m:= eln m 3.
+
+Goal \/m:Monoide, \/x:m, x+0 = x.
+intros. 
+rewrite (eln m 5).
+trivial.
+Qed.
+
+(* exemple d'instance *)
 
 Inductive Bool:Type:= true|false.
 Definition plusb(a b:Bool):= if a then if b then false else true else b.
