@@ -100,6 +100,7 @@ Notation "|| '_' : T ; P" := (Tc (\_ : T, P))(at level 200, right associativity)
 Notation "|| '_' : T" := (Tc (\_ : T, T0))(at level 200, right associativity).
 
 (* exemple avec les classes de types *)
+(* magma associatif *)
 
 Definition tel_magmaa :=
   || A : Type;
@@ -111,6 +112,7 @@ Class Magmaa:Type := magmaa: el tel_magmaa.
 Definition carrier(m:Magmaa):Type :=
   Eval compute -[elr el1] in eln m 0.
 Coercion carrier:Magmaa >-> Sortclass.
+Definition plus_assoc(m:Magmaa):= eln m 2.
 
 Instance magmaa_plus(m:Magmaa):Addition m:= eln m 1.
 
@@ -142,12 +144,15 @@ Fixpoint coerce_tel(t:tel):\/ft:el t -> tel, el (add_tel ft) -> el t:=
           (elr e)))
   end.
 
+(* monoide *)
+
 Definition tel_monoide_diff(m:Magmaa):=
     || zero:Zero m;
     || _ : \/x:m, 0+x = x;
     || _ : \/x:m, x+0 = x.
 Definition tel_monoide := Eval compute -[addition zero] in
   add_tel tel_monoide_diff.
+
 Print tel_monoide.
 
 Class Monoide:Type :=  
@@ -155,21 +160,24 @@ Class Monoide:Type :=
 Definition Monoide_Magmaa: Monoide -> Magmaa:=
   coerce_tel tel_monoide_diff.
 Coercion Monoide_Magmaa: Monoide >-> Magmaa.
+Definition monoide_plus_zero(m:Monoide):= eln m 5.
 Instance monoide_zero(m:Monoide):Zero m:= eln m 3.
 
 Lemma l2:\/m:Monoide, \/x:m, x+0 = x.
 intros. 
-rewrite (eln m 5).
+Time rewrite (monoide_plus_zero m). 
 trivial.
 Qed.
 
 Lemma l3:\/m:Monoide, \/x y z:m, (x+y)+z = x+(y+z).
 intros. 
-apply l1.
-(* ca rame, avec 
-rewrite (eln m 5).
-trivial.*)
-Qed.
+Time rewrite (plus_assoc m).
+Time trivial. (*0.1s*)
+(* avec:
+Time rewrite (eln m 2). (*1s*)
+Time trivial. (*16s*)
+*)
+Time Qed. 
 
 
 (* exemple d'instance *)
