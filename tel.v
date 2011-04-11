@@ -100,26 +100,30 @@ Notation "|| '_' : T ; P" := (Tc (\_ : T, P))(at level 200, right associativity)
 Notation "|| '_' : T" := (Tc (\_ : T, T0))(at level 200, right associativity).
 
 (* exemple avec les classes de types *)
+
+Class Associative{A:Type}(f:A->A->A):Prop:=
+  associative: \/ x y z : A, (f (f x y) z) = (f x (f y z)).
+
 (* magma associatif *)
 
 Definition tel_magmaa :=
   || A : Type;
   || plus : Addition A;
-  || _ : \/ x :A, (\/ y :A, (\/ z :A, x + y + z = x + (y + z))).
+  || _ : Associative plus.
 
 Class Magmaa:Type := magmaa: el tel_magmaa.
 
 Definition carrier(m:Magmaa):Type :=
   Eval compute -[elr el1] in eln m 0.
 Coercion carrier:Magmaa >-> Sortclass.
-Definition plus_assoc(m:Magmaa):= eln m 2.
-
 Instance magmaa_plus(m:Magmaa):Addition m:= eln m 1.
+Instance magmaa_plus_assoc(m:Magmaa):Associative _+_:= eln m 2.
 
 Lemma l1:\/m:Magmaa, \/x y z:m, (x+y)+z = x+(y+z).
+(*Set Printing All.*)
 intros. 
-rewrite (eln m 2).
-trivial.
+Time rewrite magmaa_plus_assoc. 
+Time trivial.
 Qed.
 
 Fixpoint add_tel(t:tel): (el t -> tel) -> tel:=
