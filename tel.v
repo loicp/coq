@@ -175,7 +175,7 @@ Qed.
 
 Lemma l3:\/m:Monoide, \/x y z:m, (x+y)+z = x+(y+z).
 intros. 
-Time rewrite (plus_assoc m).
+Time rewrite magmaa_plus_assoc. (*0.1s*)
 Time trivial. (*0.1s*)
 (* avec:
 Time rewrite (eln m 2). (*1s*)
@@ -207,6 +207,6 @@ Instance Magmaa_Bool:Magmaa := Bmagmaa.
 
 Goal  \/x y z:Bmagmaa, (x+y)+z = x+(y+z).
 intros. 
-rewrite (eln Bmagmaa 2).
+rewrite magmaa_plus_assoc.
 trivial.
 Qed.
