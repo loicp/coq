@@ -36,6 +36,8 @@ Inductive el: tel ->Type :=
   | el_T0: (el T0)
   | el_Tc: forall (T:Type) (x:T) (f:T -> tel),
             (el (f x)) -> (el (Tc f)) .
+
+(*
 Set Printing All.
 Set Printing Universes.
 
@@ -52,6 +54,7 @@ t1 = @Tc Type (* Top.298 *) (fun _ : Type (* Top.297 *) => T0)
      : tel
 *)
 Definition t2:= Tc (\B:el t1, T0). (*Error: Universe inconsistency.*)
+*)
 
 Definition tel1(t:tel):=
   match t with
@@ -133,6 +136,22 @@ Notation "x == y" := (equality x y) (at level 70, no associativity).
 Class Conjonction(A:Type):= conjonction:Law A.
 Notation "x 'et' y" := (conjonction x y) (at level 80).
 
+
+(****************************** graphes *)
+Definition tel_graphe:= 
+  || A:Type;
+  || R:Relation A.
+
+Set Printing All.
+Print tel_graphe.
+Unset Printing All.
+
+Class Graphe:Type := graphe: el tel_graphe.
+Definition carrier(m:Graphe):Type :=
+  Eval compute -[elr el1] in eln m 0.
+Coercion carrier:Graphe >-> Sortclass.
+Instance graphe_relation(m:Graphe):Relation m := eln m 1.
+
 (****************************** relations *)
 
 Class Reflexive{A:Type}(R:Relation A):PROP:= reflexive:\/x, R x x.
@@ -149,6 +168,10 @@ Definition tel_equivalence:=
   || _:Symetrique R;
   || _:Transitive R.
 
+Set Printing All.
+Print tel_equivalence.
+Unset Printing All.
+
 Class Equivalence:= equivalence: el tel_equivalence.
 
 Instance equivalence_reflexive(m:Equivalence):Reflexive R := eln m 0.
@@ -156,75 +179,65 @@ Instance equivalence_symetrique(m:Equivalence):Symetrique R:= eln m 1.
 Instance equivalence_transitive(m:Equivalence):Transitive R := eln m 2.
  
 End equivalences.
-(****************************** graphes *)
-Definition tel_graphe:=
-  || A:Type;
-  || R:Relation A.
-
-Class Graphe:Type := graphe: el tel_graphe.
-Definition carrier(m:Graphe):Type :=
-  Eval compute -[elr el1] in eln m 0.
-Coercion carrier:Graphe >-> Sortclass.
-Instance graphe_relation(m:Graphe):Relation m := eln m 1.
 
 (****************************** setoide *)
-Definition tel_setoide_diff(m:Graphe):= 
-   || _:@Equivalence _ (@graphe_relation m).
+Definition tel_setoide_diff(m:Graphe):= tel_equivalence.
+(*   || _:@Equivalence _ (@graphe_relation m).*)
 (*Error: Universe inconsistency.*)
 
 Definition tel_setoide := 
   Eval compute -[PROP Relation 
                  conjonction Reflexive Symetrique Transitive] in
   add_tel tel_setoide_diff.
-Set Printing All.
 
+Set Printing All.
 Print tel_setoide.
+Unset Printing All.
 
 Class Setoide:= setoide: el tel_setoide.
-Definition Setoide_Graphe: Setoide -> Graphe:=
-  coerce_tel tel_setoide_diff.
+Instance Setoide_Graphe(E:Setoide):Graphe:=
+  coerce_tel tel_setoide_diff E.
 Coercion Setoide_Graphe: Setoide >-> Graphe.
 Instance setoide_equality(E:Setoide):Equality E:= graphe_relation E.
 
-Instance setoide_equivalence(E:Setoide):Equivalence (R:=_==_) :=
+Time Instance setoide_equivalence(E:Setoide):Equivalence (R:=_==_) :=
       (el_Tc (eln E 2) _
       (el_Tc (eln E 3) _
       (el_Tc (eln E 4) _
-        el_T0))).
+        el_T0))). (* 1s *)
 Print setoide_equivalence.
-@equivalence_reflexive
+
 Lemma l0:\/E:Setoide, \/x:E, x == x.
-intros. apply equivalence_reflexive. apply setoide_equivalence.
+intros. apply (equivalence_reflexive (setoide_equivalence E)).
 Qed.
 Lemma l1:\/E:Setoide, \/x y:E, x == y -> y == x.
-intros. apply equivalence_symetrique. apply setoide_equivalence. trivial.
+intros. apply (equivalence_symetrique (setoide_equivalence E)). trivial.
 Qed.
 
 (****************************** magma associatif *)
 
 Class Associative{A:Setoide}(f:Law A):PROP:=
   associative: \/ x y z : A, (f (f x y) z) == (f x (f y z)).
+Class Compatible2{A:Setoide}(f:Law A):PROP:=
+  compatible2: \/ x x1:A, \/ y y1:A, x == x1 et y == y1 -> f x y == f x1 y1.
 
 Definition tel_magmaa_diff(A:Setoide):=
   || op : Law A;
-  || _ : Associative op.
+  || _ : Associative op;
+  || _ : Compatible2 op.
 
-Definition tel_magmaa := 
-  Eval compute -[PROP tel_equivalence Associative Relation  Law
-    conjonction Reflexive Symetrique Transitive addition] in
-  add_tel tel_magmaa_diff.
+Definition tel_magmaa := add_tel tel_magmaa_diff.
 Set Printing All.
 Print tel_magmaa.
+Print tel_magmaa_diff.
+Unset Printing All.
 
 Class Magmaa:Type := magmaa: el tel_magmaa.
-Definition Magmaa_Setoide: Magmaa -> Setoide:=
-  coerce_tel tel_magmaa_diff.
+Instance Magmaa_Setoide(m:Magmaa):Setoide:=
+  coerce_tel tel_magmaa_diff m.
 Coercion Magmaa_Setoide: Magmaa >-> Setoide.
-Definition magmaa_law(m:Magmaa):Law m:= 
- (*Eval compute -[PROP Associative Relation  Law conjonction Reflexive Symetrique Transitive addition] in*)
-   eln m 5.
+Time Definition magmaa_law(m:Magmaa):Law m:= eln m 5.(* 23s *)
 Time Instance magmaa_law_assoc(m:Magmaa):Associative (@magmaa_law m):= eln m 6.
-
 
 Lemma l2:\/m:Magmaa, \/x y z:m, (x+y)+z = x+(y+z).
 intros. 
