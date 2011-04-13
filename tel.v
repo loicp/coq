@@ -1,6 +1,8 @@
 (* Télescopes généralisés.
    Adapté de http://www-sop.inria.fr/croap/CFC/Tel/index.html *)
 
+Set Implicit Arguments.
+
 (****************************** Syntaxe *)
 
 Notation "\/ x y z ,  P" := (forall x y z, P)
@@ -26,55 +28,57 @@ Notation "\ x : T , P" := (fun x : T => P)(at level 200, x ident).
 
 (****************************** Le type des téléscopes *)
 
-Set Implicit Arguments.
+Inductive tel: Type :=
+  | T0: tel
+  | Tc: forall T:Type, (T -> tel) -> tel .
 
-Inductive el:Type -> Type :=
-  | el0: el Prop
-  | elc: \/T:Type, \/x:T, \/f:T -> Type, el (f x)
-       -> el (\/x:T,f x).
-
-(* on ne peut pas les emboiter *)
-(*
-Definition e1:= elc true (\b:bool, Prop) el0.
-Check e1.
+Inductive el: tel ->Type :=
+  | el_T0: (el T0)
+  | el_Tc: forall (T:Type) (x:T) (f:T -> tel),
+            (el (f x)) -> (el (Tc f)) .
 Set Printing All.
 Set Printing Universes.
-Check elc e1
-          (\e:(el (\/ x :bool, (fun _ : bool => Prop) x)), Prop)
-          el0.
+
+Definition t1:= Tc (\A:Type, T0).
+Print t1.
+Check (el t1).
+Check t1.
+Check (\B:el t1, T0).
+Check Tc (\B:el t1, T0).
+(*
+el t1
+     : Type (* max(Set, (Top.6)+1, (Top.2)+1) *)
+t1 = @Tc Type (* Top.298 *) (fun _ : Type (* Top.297 *) => T0)
+     : tel
 *)
+Definition t2:= Tc (\B:el t1, T0). (*Error: Universe inconsistency.*)
 
-Notation tel := Type.
-
-Definition tel1(t:tel)(e:el t):=
-  match e with
-    | el0 => Prop
-    | elc T x f e3 => T
+Definition tel1(t:tel):=
+  match t with
+   | T0 => Prop
+   | Tc T f => T
   end.
 
-Definition el1(t:tel)(e:el t):tel1 e:=
-  match e as e2 return tel1 e2 with
-    | el0 => True
-    | elc T x f e1 => x
-  end.
+Definition el1(t:tel):el t -> tel1 t.
+case t. intro. exact True.
+simpl. intros T f e. inversion e. exact x.
+Defined.
 
-Definition telr(t:tel)(e:el t):tel:=
-  match e  with
-   | el0 => Prop
-   | elc T x f e1 => f x
+Definition telr(t:tel):el t -> tel:=
+  match t as t0 return (el t0 -> tel) with
+   | T0 => fun _ : el T0 => T0
+   | Tc T f => \ e : el (Tc f), f (el1 e)
 end.
 
-Definition elr(t:tel)(e:el t): el (telr e):=
-  match e with
-    | el0 => el0
-    | elc T x f e1 => e1
-  end.
+Definition elr(t:tel)(e:el t): el (telr e).
+elim e. simpl. exact el_T0. 
+simpl. intros T x f e1. intro. exact e1. Defined.
 
 (* Le n-ième type d'un télescope. *)
 
 Fixpoint teln(t:tel)(e:el t)(n:nat){struct n}:Type:=
   match n with 
-   | O => tel1 e
+   | O => tel1 t
    | S n1 => teln (elr e) n1
  end.
 
@@ -86,23 +90,23 @@ Fixpoint eln(t:tel)(e:el t)(n:nat){struct n}:teln e n:=
 
 Fixpoint add_tel(t:tel): (el t -> tel) -> tel:=
    match t as t0 return (el t0 -> tel) -> tel with
-     | T0 => \ft: el T0 -> tel, ft el0
+     | T0 => \ft: el T0 -> tel, ft el_T0
      | Tc T f => \ft: el (Tc f) -> tel, 
          Tc (\x:T, 
-                add_tel (\e: el (f x), ft (elc x _ e)))
+                add_tel (\e: el (f x), ft (el_Tc x _ e)))
    end.
 
 Fixpoint coerce_tel(t:tel):\/ft:el t -> tel, el (add_tel ft) -> el t:=
   match
     t as t1 return (\/ ft :el t1 -> tel, el (add_tel ft) -> el t1)
   with
-    | T0 => \ ft : el T0 -> tel, (fun _ : el (add_tel ft) => el0)
+    | T0 => \ ft : el T0 -> tel, (fun _ : el (add_tel ft) => el_T0)
     | Tc T t1 =>
       \ ft : el (Tc t1) -> tel,
       (\ e : el (add_tel ft),
-        elc (el1 e) t1
+        el_Tc (el1 e) t1
         (coerce_tel
-          (\ e2 : el (t1 (el1 e)), ft (elc (el1 e) t1 e2))
+          (\ e2 : el (t1 (el1 e)), ft (el_Tc (el1 e) t1 e2))
           (elr e)))
   end.
 
@@ -183,10 +187,10 @@ Coercion Setoide_Graphe: Setoide >-> Graphe.
 Instance setoide_equality(E:Setoide):Equality E:= graphe_relation E.
 
 Instance setoide_equivalence(E:Setoide):Equivalence (R:=_==_) :=
-      (elc (eln E 2) _
-      (elc (eln E 3) _
-      (elc (eln E 4) _
-        el0))).
+      (el_Tc (eln E 2) _
+      (el_Tc (eln E 3) _
+      (el_Tc (eln E 4) _
+        el_T0))).
 Print setoide_equivalence.
 @equivalence_reflexive
 Lemma l0:\/E:Setoide, \/x:E, x == x.
@@ -276,14 +280,14 @@ induction a;induction b; induction c; simpl; auto.
 Qed.
 
 Definition Bmagmaa: Magmaa:=
-   @elc Type Bool _
-  (elc plusb _
-  (elc plusb_assoc _
-  el0)).
+   @el_Tc Type Bool _
+  (el_Tc plusb _
+  (el_Tc plusb_assoc _
+  el_T0)).
 Print Bmagmaa.
 
-Notation "\\ x ; e1" := (elc x _ e1)(at level 200, right associativity).  
-Notation "\\ x ; " := (elc x _ el0)(at level 200, right associativity).  
+Notation "\\ x ; e1" := (el_Tc x _ e1)(at level 200, right associativity).  
+Notation "\\ x ; " := (el_Tc x _ el_T0)(at level 200, right associativity).  
 Print Bmagmaa.
 
 Instance Magmaa_Bool:Magmaa := Bmagmaa.
