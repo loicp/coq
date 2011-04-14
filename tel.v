@@ -26,7 +26,8 @@ Notation "\ x y : T ,  P" := (fun x y : T => P)
    (at level 200, x ident, y ident).
 Notation "\ x : T , P" := (fun x : T => P)(at level 200, x ident).
 
-(****************************** Le type des téléscopes, inspirés de Sylvain Boulmé *)
+(****************************** Le type des téléscopes,
+   inspirés de Sylvain Boulmé *)
 
 Class Fam{T:Type}:= {dom:Type; fon:dom -> T}.
 
@@ -57,7 +58,7 @@ Unset Printing All.
 Check pair (\A:Type, A) nat 0.
 Set Printing All.
 Eval compute in tel 1.
-Eval compute in el (S O) (@Build_Fam Pt Type (fun A : Type => pt)).
+Eval compute in el 1 (@Build_Fam Pt Type (\A : Type, pt)).
 Definition p1:el 1 {|dom:=Type; fon:=\A,pt|}:=
   pair (\A:Type, Pt) nat pt.
 Definition p2:el 2 {|dom:=Type; fon:=\A,
@@ -80,59 +81,40 @@ Definition p4:el 1 {|dom:=el 2 {|dom:=Type; fon:=\A,
        p3
        pt.
 Unset Printing All.
-Fixpoint teln{n:nat}{t:tel n}(e:el n t)(i:nat){struct i}:Type:=
-  match i with
-    | 0 =>
-      match n as n1 return (\/ t0 :tel n1, el n1 t0 -> Type) with
-        | 0 => \ t0 : tel 0, (fun _ : el 0 t0 => Pt)
-        | S n1 =>
-          \ t0 : tel (S n1),
-          (fun _ : el (S n1) t0 => let (dom, _) := t0 in dom)
-      end t e
-    | S i1 =>
-      match n as n2 return (\/ t0 :tel n2, el n2 t0 -> Type) with
-        | 0 => \ t0 : tel 0, (fun _ : el 0 t0 => Pt)
-        | S n2 => \ t0 : tel (S n2), (fun e1 : el (S n2) t0 =>
-                     teln (let (dom, fon) := t0 in fon (pair1 e1)) i1)
-      end t e
-  end.
-
-Eval compute in teln p4 0.
-Eval compute in teln p4 1.
 
 Fixpoint teln{n:nat}{t:tel n}(e:el n t)(i:nat){struct i}:Type.
 induction i.
-destruct n. simpl in *. exact Pt.
-simpl in *. exact dom.
-destruct n. 
-simpl in *. exact Pt.
-simpl in *. exact IHi.
+destruct n. exact Pt. simpl in *. destruct e. exact dom.
+destruct n.  simpl in *. exact Pt.
+simpl in *. destruct e. exact (teln n _ pair4 i).
 Defined.
 
-Eval compute -[tel el] in @teln.
+Eval compute  -[tel el] in teln p3 0.
+Eval compute  -[tel el] in teln p3 1.
 
-exact dom.
-Fixpoint teln{n:nat}{t:tel n}(e:el n t)(i:nat){struct i}:Type:=
-  match i with 
-   | O => Pt
-   | S i1 => match e with 
-  end.
+Fixpoint eln{n:nat}{t:tel n}(e:el n t)(i:nat){struct i}:teln e i.
+induction i.
+destruct n. exact pt. simpl in *. destruct e. exact pair3.
+destruct n.  simpl in *. exact pt.
+simpl in *. destruct e. exact (eln n _ pair4 i).
+Defined.
 
-Fixpoint eln(A:Type)(t : A -> Type)(e:el t)(n:nat){struct n}:teln e n:=
-  match n with 
-   | O => el1 e
-   | S n1 => eln (elr e) n1 
-  end.
+Eval compute  -[tel el] in eln p3 0.
+Eval compute  -[tel el plus] in eln p3 1.
 
-Fixpoint add_tel(t:tel): (el t -> tel) -> tel:=
-   match t as t0 return (el t0 -> tel) -> tel with
-     | T0 => \ft: el T0 -> tel, ft el_T0
-     | Tc T f => \ft: el (Tc f) -> tel, 
-         Tc (\x:T, 
-                add_tel (\e: el (f x), ft (el_Tc x _ e)))
-   end.
+Fixpoint add_tel{n:nat}(t:tel n){struct n}:
+  \/m:nat,(el n t -> tel m) -> tel (n+m).
+induction n. simpl in *. intros. exact (X t).
+intros. simpl in *. destruct t. 
+exact (Build_Fam (\x:dom0, add_tel n (fon0 x) m
+          (\e: el n (fon0 x), X (pair (\ x : dom0, el n (fon0 x)) x e)))).
+Defined.
 
-Fixpoint coerce_tel(t:tel):\/ft:el t -> tel, el (add_tel ft) -> el t:=
+Fixpoint coerce_tel{n:nat}(t:tel n){struct n}:
+  \/m:nat,\/ft:el n t -> tel m, el (n+m) (add_tel t m ft) -> el n t.
+induction n.
+intros. simpl in *. exact pt.
+simpl in *;intros.
   match
     t as t1 return (\/ ft :el t1 -> tel, el (add_tel ft) -> el t1)
   with
