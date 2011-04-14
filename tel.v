@@ -26,76 +26,99 @@ Notation "\ x y : T ,  P" := (fun x y : T => P)
    (at level 200, x ident, y ident).
 Notation "\ x : T , P" := (fun x : T => P)(at level 200, x ident).
 
-(****************************** Le type des téléscopes *)
+(****************************** Le type des téléscopes, inspirés de Sylvain Boulmé *)
 
-Print sigT.
-Definition e1:= existT (\x:bool, Prop) true True.
-Check e1.
-Check existT (\e, Prop) e1 True.
-Check existT (\A, sigT (\op:A->A->A, Prop))
-             nat
-             (existT (\op, Prop) plus True).
+Class Fam{T:Type}:= {dom:Type; fon:dom -> T}.
 
+Inductive Pt:Type:=pt:Pt.
 
-
-Inductive tel: Type :=
-  | T0: tel
-  | Tc: forall T:Type, (T -> tel) -> tel .
-
-Inductive el: tel ->Type :=
-  | el_T0: (el T0)
-  | el_Tc: forall (T:Type) (x:T) (f:T -> tel),
-            (el (f x)) -> (el (Tc f)) .
-
-(*
+Fixpoint tel(n:nat){struct n}:Type:=
+  match n with 
+   | O => Pt
+   | S n1 => @Fam (tel n1)
+  end.
 Set Printing All.
-Set Printing Universes.
+Eval compute in tel 2.
+Unset Printing All.
 
-Definition t1:= Tc (\A:Type, T0).
-Print t1.
-Check (el t1).
-Check t1.
-Check (\B:el t1, T0).
-Check Tc (\B:el t1, T0).
-(*
-el t1
-     : Type (* max(Set, (Top.6)+1, (Top.2)+1) *)
-t1 = @Tc Type (* Top.298 *) (fun _ : Type (* Top.297 *) => T0)
-     : tel
-*)
-Definition t2:= Tc (\B:el t1, T0). (*Error: Universe inconsistency.*)
-*)
+Class Pair{A:Type}(f:A->Type):= pair {pair1:A; pair2:f pair1}.
 
-Definition tel1(t:tel):=
-  match t with
-   | T0 => Prop
-   | Tc T f => T
+Fixpoint el(n:nat){struct n}:tel n -> Type:=
+  match n as n1 return (tel n1 -> Type) with
+    | O => \x:Pt, Pt
+    | S n1 =>
+      \X: @Fam (tel n1), Pair (\x:dom, el n1 (fon x))
+  end.
+Eval compute -[tel dom fon] in el 3.
+Set Printing All.
+Eval compute -[tel dom fon] in el 3.
+Unset Printing All.
+
+Check pair (\A:Type, A) nat 0.
+Set Printing All.
+Eval compute in tel 1.
+Eval compute in el (S O) (@Build_Fam Pt Type (fun A : Type => pt)).
+Definition p1:el 1 {|dom:=Type; fon:=\A,pt|}:=
+  pair (\A:Type, Pt) nat pt.
+Definition p2:el 2 {|dom:=Type; fon:=\A,
+                   {|dom:=A->A->A;fon:=\op,pt|}|}:=
+  pair (\A:Type,Pair (\op:A->A->A,Pt))
+       nat
+       (pair (\op:nat->nat->nat, Pt)
+             plus
+             pt).
+Definition p3:el 2 {|dom:=Type; fon:=\A,
+                   {|dom:=A->A->A;fon:=\op,pt|}|}:=
+  pair _
+       (nat:Type)
+       (pair _
+             plus
+             pt).
+Definition p4:el 1 {|dom:=el 2 {|dom:=Type; fon:=\A,
+                               {|dom:=A->A->A;fon:=\op,pt|}|}; fon:=\A,pt|}:=
+  pair _
+       p3
+       pt.
+Unset Printing All.
+Fixpoint teln{n:nat}{t:tel n}(e:el n t)(i:nat){struct i}:Type:=
+  match i with
+    | 0 =>
+      match n as n1 return (\/ t0 :tel n1, el n1 t0 -> Type) with
+        | 0 => \ t0 : tel 0, (fun _ : el 0 t0 => Pt)
+        | S n1 =>
+          \ t0 : tel (S n1),
+          (fun _ : el (S n1) t0 => let (dom, _) := t0 in dom)
+      end t e
+    | S i1 =>
+      match n as n2 return (\/ t0 :tel n2, el n2 t0 -> Type) with
+        | 0 => \ t0 : tel 0, (fun _ : el 0 t0 => Pt)
+        | S n2 => \ t0 : tel (S n2), (fun e1 : el (S n2) t0 =>
+                     teln (let (dom, fon) := t0 in fon (pair1 e1)) i1)
+      end t e
   end.
 
-Definition el1(t:tel):el t -> tel1 t.
-case t. intro. exact True.
-simpl. intros T f e. inversion e. exact x.
+Eval compute in teln p4 0.
+Eval compute in teln p4 1.
+
+Fixpoint teln{n:nat}{t:tel n}(e:el n t)(i:nat){struct i}:Type.
+induction i.
+destruct n. simpl in *. exact Pt.
+simpl in *. exact dom.
+destruct n. 
+simpl in *. exact Pt.
+simpl in *. exact IHi.
 Defined.
 
-Definition telr(t:tel):el t -> tel:=
-  match t as t0 return (el t0 -> tel) with
-   | T0 => fun _ : el T0 => T0
-   | Tc T f => \ e : el (Tc f), f (el1 e)
-end.
+Eval compute -[tel el] in @teln.
 
-Definition elr(t:tel)(e:el t): el (telr e).
-elim e. simpl. exact el_T0. 
-simpl. intros T x f e1. intro. exact e1. Defined.
+exact dom.
+Fixpoint teln{n:nat}{t:tel n}(e:el n t)(i:nat){struct i}:Type:=
+  match i with 
+   | O => Pt
+   | S i1 => match e with 
+  end.
 
-(* Le n-ième type d'un télescope. *)
-
-Fixpoint teln(t:tel)(e:el t)(n:nat){struct n}:Type:=
-  match n with 
-   | O => tel1 t
-   | S n1 => teln (elr e) n1
- end.
-
-Fixpoint eln(t:tel)(e:el t)(n:nat){struct n}:teln e n:=
+Fixpoint eln(A:Type)(t : A -> Type)(e:el t)(n:nat){struct n}:teln e n:=
   match n with 
    | O => el1 e
    | S n1 => eln (elr e) n1 
