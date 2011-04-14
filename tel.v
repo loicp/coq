@@ -28,6 +28,16 @@ Notation "\ x : T , P" := (fun x : T => P)(at level 200, x ident).
 
 (****************************** Le type des téléscopes *)
 
+Print sigT.
+Definition e1:= existT (\x:bool, Prop) true True.
+Check e1.
+Check existT (\e, Prop) e1 True.
+Check existT (\A, sigT (\op:A->A->A, Prop))
+             nat
+             (existT (\op, Prop) plus True).
+
+
+
 Inductive tel: Type :=
   | T0: tel
   | Tc: forall T:Type, (T -> tel) -> tel .
@@ -236,7 +246,14 @@ Class Magmaa:Type := magmaa: el tel_magmaa.
 Instance Magmaa_Setoide(m:Magmaa):Setoide:=
   coerce_tel tel_magmaa_diff m.
 Coercion Magmaa_Setoide: Magmaa >-> Setoide.
-Time Definition magmaa_law(m:Magmaa):Law m:= eln m 5.(* 23s *)
+Time Check \m:Magmaa, (eln m 5:Law m). (* 19s *)
+Time Check \m:Magmaa, Law m.
+Time Check \m:Magmaa, Law m = teln m 5.
+Time Definition magmaa_law:\/m:Magmaa,teln m 5:=\m:Magmaa, eln m 5. (* 5s *)
+Time Definition magmaa_law2(m:Magmaa):teln m 5:= eln m 5. (* 5s *)
+
+Time Definition magmaa_law3(m:Magmaa):Law m:= eln m 5. (* 23s *)
+
 Time Instance magmaa_law_assoc(m:Magmaa):Associative (@magmaa_law m):= eln m 6.
 
 Lemma l2:\/m:Magmaa, \/x y z:m, (x+y)+z = x+(y+z).
