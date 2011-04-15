@@ -42,7 +42,9 @@ Set Printing All.
 Eval compute in tel 2.
 Unset Printing All.
 
-Class Pair{A:Type}(f:A->Type):= pair {pair1:A; pair2:f pair1}.
+(* éléments d'un téléscope *)
+
+Class Pair{A:Type}(f:A->Type):= pair {pairx:A; pairfx:f pairx}.
 
 Fixpoint el(n:nat){struct n}:tel n -> Type:=
   match n as n1 return (tel n1 -> Type) with
@@ -82,21 +84,38 @@ Definition p4:el 1 {|dom:=el 2 {|dom:=Type; fon:=\A,
        pt.
 Unset Printing All.
 
+Definition tel1{n:nat}(t:tel n):Type.
+destruct n. exact Pt. simpl in *. exact dom.
+Defined.
+
+Definition el1{n:nat}{t:tel n}(e:el n t):tel1 t.
+destruct n. exact pt. simpl in *. exact pairx. 
+Defined.
+
+Definition telr{n:nat}{t:tel n}(e: el n t):Type.
+destruct n. exact Pt. simpl in *. destruct t. exact (el n (fon0 pairx)).
+Defined.
+
+Definition elr{n:nat}{t:tel n}(e:el n t):telr e.
+destruct n. exact pt. simpl in *. destruct t. exact pairfx.
+Defined.
+Eval compute -[plus] in (elr p3).
+Eval compute in telr p3.
+
 Fixpoint teln{n:nat}{t:tel n}(e:el n t)(i:nat){struct i}:Type.
 induction i.
-destruct n. exact Pt. simpl in *. destruct e. exact dom.
-destruct n.  simpl in *. exact Pt.
-simpl in *. destruct e. exact (teln n _ pair4 i).
+exact (tel1 t).
+destruct n. exact Pt. simpl in *.
+exact (teln _ _ (@pairfx _ _ e) i).
 Defined.
 
 Eval compute  -[tel el] in teln p3 0.
 Eval compute  -[tel el] in teln p3 1.
 
 Fixpoint eln{n:nat}{t:tel n}(e:el n t)(i:nat){struct i}:teln e i.
-induction i.
-destruct n. exact pt. simpl in *. destruct e. exact pair3.
-destruct n.  simpl in *. exact pt.
-simpl in *. destruct e. exact (eln n _ pair4 i).
+induction i. exact (el1 e). 
+destruct n. exact pt. simpl in *.
+ exact (eln n _ (@pairfx _ _ e) i).
 Defined.
 
 Eval compute  -[tel el] in eln p3 0.
@@ -113,8 +132,12 @@ Defined.
 Fixpoint coerce_tel{n:nat}(t:tel n){struct n}:
   \/m:nat,\/ft:el n t -> tel m, el (n+m) (add_tel t m ft) -> el n t.
 induction n.
-intros. simpl in *. exact pt.
-simpl in *;intros.
+intros. simpl in *. exact pt. intros. 
+simpl in *. 
+Check (@coerce_tel n _ m (ft X).
+exact (pair _
+  _
+            (coerce_tel n _ m _ X)).
   match
     t as t1 return (\/ ft :el t1 -> tel, el (add_tel ft) -> el t1)
   with
