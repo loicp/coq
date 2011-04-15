@@ -1,8 +1,6 @@
 (* Télescopes généralisés.
    Adapté de http://www-sop.inria.fr/croap/CFC/Tel/index.html *)
 
-Set Implicit Arguments.
-
 (****************************** Syntaxe *)
 
 Notation "\/ x y z ,  P" := (forall x y z, P)
@@ -26,135 +24,118 @@ Notation "\ x y : T ,  P" := (fun x y : T => P)
    (at level 200, x ident, y ident).
 Notation "\ x : T , P" := (fun x : T => P)(at level 200, x ident).
 
-(****************************** Le type des téléscopes,
-   inspirés de Sylvain Boulmé *)
+Set Implicit Arguments.
 
-Class Fam{T:Type}:= {dom:Type; fon:dom -> T}.
+(****************************** Le type des téléscopes *)
 
-Inductive Pt:Type:=pt:Pt.
+Inductive tel:Type:=
+  | T0:tel
+  | Tc: \/T:Type,(T -> tel) -> tel.
 
-Fixpoint tel(n:nat){struct n}:Type:=
-  match n with 
-   | O => Pt
-   | S n1 => @Fam (tel n1)
-  end.
-Set Printing All.
-Eval compute in tel 2.
-Unset Printing All.
+Inductive Pt:Type:= pt:Pt.
 
 (* éléments d'un téléscope *)
 
 Class Pair{A:Type}(f:A->Type):= pair {pairx:A; pairfx:f pairx}.
 
-Fixpoint el(n:nat){struct n}:tel n -> Type:=
-  match n as n1 return (tel n1 -> Type) with
-    | O => \x:Pt, Pt
-    | S n1 =>
-      \X: @Fam (tel n1), Pair (\x:dom, el n1 (fon x))
+Fixpoint el(t:tel):Type:=
+  match t with
+    | T0 => Pt
+    | Tc T f => Pair (\x:T, el (f x))
   end.
-Eval compute -[tel dom fon] in el 3.
-Set Printing All.
-Eval compute -[tel dom fon] in el 3.
-Unset Printing All.
 
-Check pair (\A:Type, A) nat 0.
-Set Printing All.
-Eval compute in tel 1.
-Eval compute in el 1 (@Build_Fam Pt Type (\A : Type, pt)).
-Definition p1:el 1 {|dom:=Type; fon:=\A,pt|}:=
+Eval compute in el (Tc (\A : Type, T0)).
+Definition p1:el (Tc (\A : Type, T0)):=
   pair (\A:Type, Pt) nat pt.
-Definition p2:el 2 {|dom:=Type; fon:=\A,
-                   {|dom:=A->A->A;fon:=\op,pt|}|}:=
-  pair (\A:Type,Pair (\op:A->A->A,Pt))
-       nat
-       (pair (\op:nat->nat->nat, Pt)
-             plus
-             pt).
-Definition p3:el 2 {|dom:=Type; fon:=\A,
-                   {|dom:=A->A->A;fon:=\op,pt|}|}:=
-  pair _
-       (nat:Type)
-       (pair _
-             plus
-             pt).
-Definition p4:el 1 {|dom:=el 2 {|dom:=Type; fon:=\A,
-                               {|dom:=A->A->A;fon:=\op,pt|}|}; fon:=\A,pt|}:=
-  pair _
-       p3
-       pt.
+Definition p2:el (Tc (\A, Tc (\op:A->A->A, T0))):=
+  pair _ (nat:Type) (pair _ plus pt).
+Print p2.
+Definition p4:el (Tc (\x:(el (Tc (\A, Tc (\op:A->A->A, T0)))),T0)):=
+  pair _ p2 pt.
 Unset Printing All.
 
-Definition tel1{n:nat}(t:tel n):Type.
-destruct n. exact Pt. simpl in *. exact dom.
-Defined.
-
-Definition el1{n:nat}{t:tel n}(e:el n t):tel1 t.
-destruct n. exact pt. simpl in *. exact pairx. 
-Defined.
-
-Definition telr{n:nat}{t:tel n}(e: el n t):Type.
-destruct n. exact Pt. simpl in *. destruct t. exact (el n (fon0 pairx)).
-Defined.
-
-Definition elr{n:nat}{t:tel n}(e:el n t):telr e.
-destruct n. exact pt. simpl in *. destruct t. exact pairfx.
-Defined.
-Eval compute -[plus] in (elr p3).
-Eval compute in telr p3.
-
-Fixpoint teln{n:nat}{t:tel n}(e:el n t)(i:nat){struct i}:Type.
-induction i.
-exact (tel1 t).
-destruct n. exact Pt. simpl in *.
-exact (teln _ _ (@pairfx _ _ e) i).
-Defined.
-
-Eval compute  -[tel el] in teln p3 0.
-Eval compute  -[tel el] in teln p3 1.
-
-Fixpoint eln{n:nat}{t:tel n}(e:el n t)(i:nat){struct i}:teln e i.
-induction i. exact (el1 e). 
-destruct n. exact pt. simpl in *.
- exact (eln n _ (@pairfx _ _ e) i).
-Defined.
-
-Eval compute  -[tel el] in eln p3 0.
-Eval compute  -[tel el plus] in eln p3 1.
-
-Fixpoint add_tel{n:nat}(t:tel n){struct n}:
-  \/m:nat,(el n t -> tel m) -> tel (n+m).
-induction n. simpl in *. intros. exact (X t).
-intros. simpl in *. destruct t. 
-exact (Build_Fam (\x:dom0, add_tel n (fon0 x) m
-          (\e: el n (fon0 x), X (pair (\ x : dom0, el n (fon0 x)) x e)))).
-Defined.
-
-Fixpoint coerce_tel{n:nat}(t:tel n){struct n}:
-  \/m:nat,\/ft:el n t -> tel m, el (n+m) (add_tel t m ft) -> el n t.
-induction n.
-intros. simpl in *. exact pt. intros. 
-simpl in *. 
-Check (@coerce_tel n _ m (ft X).
-exact (pair _
-  _
-            (coerce_tel n _ m _ X)).
-  match
-    t as t1 return (\/ ft :el t1 -> tel, el (add_tel ft) -> el t1)
-  with
-    | T0 => \ ft : el T0 -> tel, (fun _ : el (add_tel ft) => el_T0)
-    | Tc T t1 =>
-      \ ft : el (Tc t1) -> tel,
-      (\ e : el (add_tel ft),
-        el_Tc (el1 e) t1
-        (coerce_tel
-          (\ e2 : el (t1 (el1 e)), ft (el_Tc (el1 e) t1 e2))
-          (elr e)))
+Definition tel1(t:tel):=
+  match t with
+   | T0 => Prop
+   | Tc T f => T
   end.
+
+Definition el1{t:tel}:el t -> tel1 t.
+case t. intro. exact True.
+simpl. intros T f e. exact pairx.
+Defined.
+
+Definition telr{t:tel}:el t -> tel:=
+  match t as t0 return (el t0 -> tel) with
+   | T0 => fun _ : el T0 => T0
+   | Tc T f => \ e, f (el1 e)
+end.
+ 
+Definition elr{t:tel}:\/e:el t, el (telr e):=
+  match t as t0 return (\/ e0 :el t0, el (telr e0)) with
+    | T0 => fun _ : el T0 => pt
+    | Tc T t0 => \ e0 : el (Tc t0), (@pairfx _ _ e0)
+  end.
+ 
+Fixpoint teln{t:tel}(e:el t)(n:nat){struct n}:Type:=
+  match n with 
+   | O => tel1 t
+   | S n1 => teln (elr e) n1
+ end.
+
+Eval compute  -[el] in teln p2 0.
+Eval compute  -[el] in teln p2 1.
+
+Fixpoint eln{t:tel}(e:el t)(n:nat){struct n}:teln e n:=
+  match n with 
+   | O => el1 e
+   | S n1 => eln (elr e) n1
+ end.
+
+Eval compute  -[el] in eln p2 0.
+Eval compute  -[el plus] in eln p2 1.
+
+Definition Magmatest:tel:= (Tc (\A, Tc (\op:A->A->A, T0))).
+Definition magmatest:el Magmatest:= pair _ (nat:Type) (pair _ plus pt).
 
 Notation "|| x : T ; P" := (Tc (\x : T, P))(at level 200, x ident, right associativity).  
 Notation "|| x : T" := (Tc (\x : T, T0))(at level 200, x ident, right associativity).  
 Notation "|| '_' : T ; P" := (Tc (\_ : T, P))(at level 200, right associativity).  
 Notation "|| '_' : T" := (Tc (\_ : T, T0))(at level 200, right associativity).
+
+Print Magmatest.
+Notation "\\ a ; b" :=  (pair _ a b)(at level 200, right associativity). 
+Notation "\\ a " :=  (pair _ a pt)(at level 200, right associativity). 
+Print magmatest.
+
+Fixpoint add_tel{t:tel}: (el t -> tel) -> tel:=
+   match t as t0 return (el t0 -> tel) -> tel with
+     | T0 => \ft: el T0 -> tel, ft pt
+     | Tc T f => \ft: el (Tc f) -> tel, 
+         Tc (\x:T, 
+                add_tel (\e: el (f x), ft (pair _ x e)))
+   end.
+
+Fixpoint coerce_tel{t:tel}:\/ft:el t -> tel, el (add_tel ft) -> el t:=
+  match
+    t as t1 return (\/ ft :el t1 -> tel, el (add_tel ft) -> el t1)
+  with
+    | T0 => \ ft : el T0 -> tel, (fun _ : el (add_tel ft) => pt)
+    | Tc T t1 =>
+      \ ft : el (Tc t1) -> tel,
+      (\ e : el (add_tel ft),
+        pair _ (el1 e)
+        (coerce_tel
+          (\ e2 : el (t1 (el1 e)), ft (pair _ (el1 e) e2))
+          (elr e)))
+  end.
+
+Eval compute -[el] in
+  add_tel (\e:el Magmatest, (Tc (\x:el1 e,T0))). 
+
+Eval compute -[el plus] in
+  coerce_tel (\e:el Magmatest,(Tc (\x:el1 e,T0)))
+  (pair _ (nat:Type) (pair _ plus (pair _ 0 pt))).
 
 (****************************** exemples *)
 
@@ -176,7 +157,7 @@ Notation "x 'et' y" := (conjonction x y) (at level 80).
 
 
 (****************************** graphes *)
-Definition tel_graphe:= 
+Definition tel_graphe:tel:= 
   || A:Type;
   || R:Relation A.
 
@@ -186,9 +167,9 @@ Unset Printing All.
 
 Class Graphe:Type := graphe: el tel_graphe.
 Definition carrier(m:Graphe):Type :=
-  Eval compute -[elr el1] in eln m 0.
+  Eval compute -[elr el1] in @eln tel_graphe m 0.
 Coercion carrier:Graphe >-> Sortclass.
-Instance graphe_relation(m:Graphe):Relation m := eln m 1.
+Instance graphe_relation(m:Graphe):Relation m := @eln tel_graphe m 1.
 
 (****************************** relations *)
 
@@ -212,21 +193,22 @@ Unset Printing All.
 
 Class Equivalence:= equivalence: el tel_equivalence.
 
-Instance equivalence_reflexive(m:Equivalence):Reflexive R := eln m 0.
-Instance equivalence_symetrique(m:Equivalence):Symetrique R:= eln m 1.
-Instance equivalence_transitive(m:Equivalence):Transitive R := eln m 2.
+Instance equivalence_reflexive(m:Equivalence):Reflexive R := @eln tel_equivalence m 0.
+Instance equivalence_symetrique(m:Equivalence):Symetrique R:= @eln tel_equivalence m 1.
+Instance equivalence_transitive(m:Equivalence):Transitive R := @eln tel_equivalence m 2.
  
 End equivalences.
 
 (****************************** setoide *)
-Definition tel_setoide_diff(m:Graphe):= tel_equivalence.
-(*   || _:@Equivalence _ (@graphe_relation m).*)
-(*Error: Universe inconsistency.*)
+Definition tel_setoide_diff(m:Graphe):= 
+  || _:@Equivalence _ (@graphe_relation m).
+(* ya plus d'inconsistence d'univers :-) *)
 
 Definition tel_setoide := 
   Eval compute -[PROP Relation 
-                 conjonction Reflexive Symetrique Transitive] in
+                 conjonction Equivalence Reflexive Symetrique Transitive] in
   add_tel tel_setoide_diff.
+Print tel_setoide.
 
 Set Printing All.
 Print tel_setoide.
@@ -237,13 +219,8 @@ Instance Setoide_Graphe(E:Setoide):Graphe:=
   coerce_tel tel_setoide_diff E.
 Coercion Setoide_Graphe: Setoide >-> Graphe.
 Instance setoide_equality(E:Setoide):Equality E:= graphe_relation E.
-
 Time Instance setoide_equivalence(E:Setoide):Equivalence (R:=_==_) :=
-      (el_Tc (eln E 2) _
-      (el_Tc (eln E 3) _
-      (el_Tc (eln E 4) _
-        el_T0))). (* 1s *)
-Print setoide_equivalence.
+  @eln tel_setoide E 2.
 
 Lemma l0:\/E:Setoide, \/x:E, x == x.
 intros. apply (equivalence_reflexive (setoide_equivalence E)).
@@ -274,15 +251,13 @@ Class Magmaa:Type := magmaa: el tel_magmaa.
 Instance Magmaa_Setoide(m:Magmaa):Setoide:=
   coerce_tel tel_magmaa_diff m.
 Coercion Magmaa_Setoide: Magmaa >-> Setoide.
-Time Check \m:Magmaa, (eln m 5:Law m). (* 19s *)
 Time Check \m:Magmaa, Law m.
-Time Check \m:Magmaa, Law m = teln m 5.
-Time Definition magmaa_law:\/m:Magmaa,teln m 5:=\m:Magmaa, eln m 5. (* 5s *)
-Time Definition magmaa_law2(m:Magmaa):teln m 5:= eln m 5. (* 5s *)
+Time Check \m:Magmaa, Law m = @teln tel_magmaa m 3.
 
-Time Definition magmaa_law3(m:Magmaa):Law m:= eln m 5. (* 23s *)
+Time Definition magmaa_law(m:Magmaa):Law m:= @eln tel_magmaa m 3. (* 0s *)
 
-Time Instance magmaa_law_assoc(m:Magmaa):Associative (@magmaa_law m):= eln m 6.
+Time Instance magmaa_law_assoc(m:Magmaa):Associative (@magmaa_law m):=
+  @eln tel_magmaa m 4. (* 3s *)
 
 Lemma l2:\/m:Magmaa, \/x y z:m, (x+y)+z = x+(y+z).
 intros. 
@@ -338,14 +313,14 @@ induction a;induction b; induction c; simpl; auto.
 Qed.
 
 Definition Bmagmaa: Magmaa:=
-   @el_Tc Type Bool _
-  (el_Tc plusb _
-  (el_Tc plusb_assoc _
+   @pair Type Bool _
+  (pair plusb _
+  (pair plusb_assoc _
   el_T0)).
 Print Bmagmaa.
 
-Notation "\\ x ; e1" := (el_Tc x _ e1)(at level 200, right associativity).  
-Notation "\\ x ; " := (el_Tc x _ el_T0)(at level 200, right associativity).  
+Notation "\\ x ; e1" := (pair x _ e1)(at level 200, right associativity).  
+Notation "\\ x ; " := (pair x _ el_T0)(at level 200, right associativity).  
 Print Bmagmaa.
 
 Instance Magmaa_Bool:Magmaa := Bmagmaa.
