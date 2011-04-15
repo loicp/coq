@@ -240,10 +240,16 @@ Definition tel_magmaa_diff(A:Setoide):=
   || op : Law A;
   || _ : Associative op;
   || _ : Compatible2 op.
+Definition tel_magmaa :=
+  Eval compute -[el PROP
+                 Setoide Relation Associative Compatible2 Law
+                 conjonction Equivalence Reflexive Symetrique Transitive] in
+add_tel tel_magmaa_diff.
 
-Definition tel_magmaa := add_tel tel_magmaa_diff.
 Set Printing All.
+Print tel_magmaa_diff.
 Print tel_magmaa.
+@Associative.
 Print tel_magmaa_diff.
 Unset Printing All.
 
@@ -256,13 +262,19 @@ Time Check \m:Magmaa, Law m = @teln tel_magmaa m 3.
 
 Time Definition magmaa_law(m:Magmaa):Law m:= @eln tel_magmaa m 3. (* 0s *)
 
-Time Instance magmaa_law_assoc(m:Magmaa):Associative (@magmaa_law m):=
+Time Definition magmaa_law_assoc(m:Magmaa):Associative (@magmaa_law m):=
+  Eval compute
+    -[PROP Relation 
+      conjonction Equivalence Reflexive Symetrique Transitive] in
   @eln tel_magmaa m 4. (* 3s *)
 
-Lemma l2:\/m:Magmaa, \/x y z:m, (x+y)+z = x+(y+z).
+Print magmaa_law_assoc.
+
+Instance magmaa_add(m:Magmaa):Addition m:= magmaa_law m.
+
+Lemma l2:\/m:Magmaa, \/x y z:m, (x+y)+z == x+(y+z).
 intros. 
-Time rewrite magmaa_law_assoc. 
-Time trivial.
+Time apply magmaa_law_assoc. 
 Qed.
 
 (****************************** monoide *)
