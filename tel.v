@@ -127,7 +127,7 @@ Fixpoint coerce_tel{t:tel}:\/ft:el t -> tel, el (add_tel ft) -> el t:=
         pair _ (el1 e)
         (coerce_tel
           (\ e2 : el (t1 (el1 e)), ft (pair _ (el1 e) e2))
-          (elr e)))
+           (elr e)))
   end.
 
 Eval compute -[el] in
@@ -200,27 +200,18 @@ Instance equivalence_transitive(m:Equivalence):Transitive R := @eln tel_equivale
 End equivalences.
 
 (****************************** setoide *)
-Definition tel_setoide_diff(m:Graphe):= 
+Definition tel_setoide:=
+  || m:Graphe;
   || _:@Equivalence _ (@graphe_relation m).
 (* ya plus d'inconsistence d'univers :-) *)
 
-Definition tel_setoide := 
-  Eval compute -[PROP Relation 
-                 conjonction Equivalence Reflexive Symetrique Transitive] in
-  add_tel tel_setoide_diff.
-Print tel_setoide.
-
-Set Printing All.
-Print tel_setoide.
-Unset Printing All.
-
 Class Setoide:= setoide: el tel_setoide.
 Instance Setoide_Graphe(E:Setoide):Graphe:=
-  coerce_tel tel_setoide_diff E.
+  @eln tel_setoide E 0.
 Coercion Setoide_Graphe: Setoide >-> Graphe.
 Instance setoide_equality(E:Setoide):Equality E:= graphe_relation E.
 Time Instance setoide_equivalence(E:Setoide):Equivalence (R:=_==_) :=
-  @eln tel_setoide E 2.
+  @eln tel_setoide E 1.
 
 Lemma l0:\/E:Setoide, \/x:E, x == x.
 intros. apply (equivalence_reflexive (setoide_equivalence E)).
@@ -236,44 +227,27 @@ Class Associative{A:Setoide}(f:Law A):PROP:=
 Class Compatible2{A:Setoide}(f:Law A):PROP:=
   compatible2: \/ x x1:A, \/ y y1:A, x == x1 et y == y1 -> f x y == f x1 y1.
 
-Definition tel_magmaa_diff(A:Setoide):=
+Definition tel_magmaa:=
+  || A : Setoide;
   || op : Law A;
   || _ : Associative op;
   || _ : Compatible2 op.
-Definition tel_magmaa :=
-  Eval compute -[el PROP
-                 Setoide Relation Associative Compatible2 Law
-                 conjonction Equivalence Reflexive Symetrique Transitive] in
-add_tel tel_magmaa_diff.
 
 Set Printing All.
-Print tel_magmaa_diff.
 Print tel_magmaa.
-Eval compute -[el PROP 
-                 Setoide Relation Associative Compatible2 Law
-                 conjonction Equivalence Reflexive Symetrique Transitive] in
-add_tel tel_magmaa_diff.
-Check @Associative.
-Print tel_magmaa_diff.
 Unset Printing All.
 
 Class Magmaa:Type := magmaa: el tel_magmaa.
 Instance Magmaa_Setoide(m:Magmaa):Setoide:=
-  coerce_tel tel_magmaa_diff m.
+  @eln tel_magmaa m 0.
 Coercion Magmaa_Setoide: Magmaa >-> Setoide.
 Time Check \m:Magmaa, Law m.
-Time Check \m:Magmaa, Law m = @teln tel_magmaa m 3.
+Time Check \m:Magmaa, Law m = @teln tel_magmaa m 1.
 
-Time Definition magmaa_law(m:Magmaa):Law m:= @eln tel_magmaa m 3. (* 0s *)
+Time Definition magmaa_law(m:Magmaa):Law m:= @eln tel_magmaa m 1. 
 
 Time Definition magmaa_law_assoc(m:Magmaa):Associative (@magmaa_law m):=
-  Eval compute
-    -[PROP Relation 
-      conjonction Equivalence Reflexive Symetrique Transitive] in
-  @eln tel_magmaa m 4. (* 3s *)
-
-Print magmaa_law_assoc.
-
+  @eln tel_magmaa m 2. 
 Instance magmaa_add(m:Magmaa):Addition m:= magmaa_law m.
 
 Lemma l2:\/m:Magmaa, \/x y z:m, (x+y)+z == x+(y+z).
@@ -285,40 +259,35 @@ Qed.
 
 Class Neutre_a_droite{A:Setoide}(f:A->A->A)(e:A):PROP:=
   neutre_a_droite: \/x:A, (f x e) == x.
+Class Neutre_a_gauche{A:Setoide}(f:A->A->A)(e:A):PROP:=
+  neutre_a_gauche: \/x:A, (f e x) == x.
+Class Neutre (A : Type) := neutre : A.
 
-Definition tel_monoide_diff(m:Magmaa):=
-    || zero:Zero m;
-    || _ : \/x:m, 0+x == x;
-    || _ : \/x:m, x+0 == x.
-Definition tel_monoide := Eval compute -[addition zero] in
-  add_tel tel_monoide_diff.
+Definition tel_monoide:=
+    || m:Magmaa;
+    || neutre:Zero m;
+    || _:Neutre_a_droite (magmaa_law m) neutre;
+    || _:Neutre_a_gauche (magmaa_law m) neutre.
 
-Print tel_monoide.
-
-Class Monoide:Type :=  
-  monoide: el tel_monoide.
-Definition Monoide_Magmaa: Monoide -> Magmaa:=
-  coerce_tel tel_monoide_diff.
+Class Monoide:Type := monoide: el tel_monoide.
+Instance Monoide_Magmaa(m:Monoide): Magmaa:=
+  @eln tel_monoide m 0.
 Coercion Monoide_Magmaa: Monoide >-> Magmaa.
-Instance monoide_zero(m:Monoide):Zero m:= eln m 7.
-Definition monoide_plus_zero(m:Monoide):= eln m 9.
+Instance monoide_neutre(m:Monoide):Neutre m:= @eln tel_monoide m 1.
+Definition monoide_neutre_a_gauche(m:Monoide):=  @eln tel_monoide m 3.
+Definition monoide_neutre_a_droite(m:Monoide):=  @eln tel_monoide m 2.
+
+Instance monoide_zero(m:Monoide):Zero m:= monoide_neutre m.
 
 Lemma l3:\/m:Monoide, \/x:m, x+0 == x.
 intros. 
-Time apply (monoide_plus_zero m). 
-trivial.
+Time apply monoide_neutre_a_droite.
 Qed.
 
-Lemma l3:\/m:Monoide, \/x y z:m, (x+y)+z = x+(y+z).
+Lemma l4:\/m:Monoide, \/x y z:m, (x+y)+z == x+(y+z).
 intros. 
-Time rewrite magmaa_plus_assoc.
-Time trivial. (*0.1s*)
-(* avec:
-Time rewrite (eln m 2). (*1s*)
-Time trivial. (*16s*)
-*)
+Time apply magmaa_law_assoc.
 Time Qed. 
-
 
 (* exemple d'instance *)
 
