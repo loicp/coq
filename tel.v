@@ -249,7 +249,11 @@ add_tel tel_magmaa_diff.
 Set Printing All.
 Print tel_magmaa_diff.
 Print tel_magmaa.
-@Associative.
+Eval compute -[el PROP 
+                 Setoide Relation Associative Compatible2 Law
+                 conjonction Equivalence Reflexive Symetrique Transitive] in
+add_tel tel_magmaa_diff.
+Check @Associative.
 Print tel_magmaa_diff.
 Unset Printing All.
 
