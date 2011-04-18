@@ -139,10 +139,11 @@ Eval compute -[el plus] in
 
 (****************************** exemples *)
 
+Class Neutre (A : Type) := neutre : A.
 Class Zero (A : Type) := zero : A.
 Notation "0" := zero.
-Class Law(A:Type):= law:A->A->A.
-Class Addition (A : Type) := addition : Law A.
+Class Loi(A:Type):= loi:A->A->A.
+Class Addition (A : Type) := addition : Loi A.
 Notation "_+_" := addition.
 Notation "x + y" := (addition x y).
 Class PROP:=prop:Prop.
@@ -152,7 +153,7 @@ Class Equality (A : Type):= equality : Relation A.
 Notation "_==_" := equality.
 Notation "x == y" := (equality x y) (at level 70, no associativity).
 
-Class Conjonction(A:Type):= conjonction:Law A.
+Class Conjonction(A:Type):= conjonction:Loi A.
 Notation "x 'et' y" := (conjonction x y) (at level 80).
 
 
@@ -222,14 +223,14 @@ Qed.
 
 (****************************** magma associatif *)
 
-Class Associative{A:Setoide}(f:Law A):PROP:=
+Class Associative{A:Setoide}(f:Loi A):PROP:=
   associative: \/ x y z : A, (f (f x y) z) == (f x (f y z)).
-Class Compatible2{A:Setoide}(f:Law A):PROP:=
+Class Compatible2{A:Setoide}(f:Loi A):PROP:=
   compatible2: \/ x x1:A, \/ y y1:A, x == x1 et y == y1 -> f x y == f x1 y1.
 
 Definition tel_magmaa:=
   || A : Setoide;
-  || op : Law A;
+  || op : Loi A;
   || _ : Associative op;
   || _ : Compatible2 op.
 
@@ -241,19 +242,24 @@ Class Magmaa:Type := magmaa: el tel_magmaa.
 Instance Magmaa_Setoide(m:Magmaa):Setoide:=
   @eln tel_magmaa m 0.
 Coercion Magmaa_Setoide: Magmaa >-> Setoide.
-Time Check \m:Magmaa, Law m.
-Time Check \m:Magmaa, Law m = @teln tel_magmaa m 1.
+Time Check \m:Magmaa, Loi m.
+Time Check \m:Magmaa, Loi m = @teln tel_magmaa m 1.
 
-Time Definition magmaa_law(m:Magmaa):Law m:= @eln tel_magmaa m 1. 
+Time Definition magmaa_loi(m:Magmaa):Loi m:= @eln tel_magmaa m 1. 
 
-Time Definition magmaa_law_assoc(m:Magmaa):Associative (@magmaa_law m):=
+Time Definition magmaa_loi_assoc(m:Magmaa):Associative (@magmaa_loi m):=
   @eln tel_magmaa m 2. 
-Instance magmaa_add(m:Magmaa):Addition m:= magmaa_law m.
+Instance magmaa_add(m:Magmaa):Loi m:= magmaa_loi m.
+
+Section test.
+Notation "_+_" := loi.
+Notation "x + y" := (loi x y).
 
 Lemma l2:\/m:Magmaa, \/x y z:m, (x+y)+z == x+(y+z).
 intros. 
-Time apply magmaa_law_assoc. 
+Time apply magmaa_loi_assoc. 
 Qed.
+End test.
 
 (****************************** monoide *)
 
@@ -261,13 +267,12 @@ Class Neutre_a_droite{A:Setoide}(f:A->A->A)(e:A):PROP:=
   neutre_a_droite: \/x:A, (f x e) == x.
 Class Neutre_a_gauche{A:Setoide}(f:A->A->A)(e:A):PROP:=
   neutre_a_gauche: \/x:A, (f e x) == x.
-Class Neutre (A : Type) := neutre : A.
 
 Definition tel_monoide:=
     || m:Magmaa;
-    || neutre:Zero m;
-    || _:Neutre_a_droite (magmaa_law m) neutre;
-    || _:Neutre_a_gauche (magmaa_law m) neutre.
+    || e:Neutre m;
+    || _:Neutre_a_droite (magmaa_loi m) e;
+    || _:Neutre_a_gauche (magmaa_loi m) e.
 
 Class Monoide:Type := monoide: el tel_monoide.
 Instance Monoide_Magmaa(m:Monoide): Magmaa:=
@@ -277,7 +282,12 @@ Instance monoide_neutre(m:Monoide):Neutre m:= @eln tel_monoide m 1.
 Definition monoide_neutre_a_gauche(m:Monoide):=  @eln tel_monoide m 3.
 Definition monoide_neutre_a_droite(m:Monoide):=  @eln tel_monoide m 2.
 
-Instance monoide_zero(m:Monoide):Zero m:= monoide_neutre m.
+Instance monoide_neutre_i(m:Monoide):Neutre m:= monoide_neutre m.
+
+Section test2.
+Notation "_+_" := loi.
+Notation "x + y" := (loi x y).
+Notation "0" := neutre.
 
 Lemma l3:\/m:Monoide, \/x:m, x+0 == x.
 intros. 
@@ -286,10 +296,48 @@ Qed.
 
 Lemma l4:\/m:Monoide, \/x y z:m, (x+y)+z == x+(y+z).
 intros. 
-Time apply magmaa_law_assoc.
+Time apply magmaa_loi_assoc.
 Time Qed. 
+End test2.
 
-(* exemple d'instance *)
+(****************************** groupe *)
+Section Groupe.
+Notation "x + y" := (loi x y).
+Notation "0" := neutre.
+
+Class Inverse_a_droite{A:Monoide}(o:A->A):PROP:=
+  inverse_a_droite:\/x:A, x+(o x) == 0.
+Class Inverse_a_gauche{A:Monoide}(o:A->A):PROP:=
+  inverse_a_gauche:\/x:A, (o x)+x == 0.
+Class Inverse(A:Type):= inverse:A->A.
+
+Definition tel_groupe:=
+    || m:Monoide;
+    || o:Inverse m;
+    || _:Inverse_a_droite o;
+    || _:Inverse_a_gauche o.
+
+Class Groupe:Type := groupe: el tel_groupe.
+Global Instance Groupe_Monoide(m:Groupe): Monoide:=
+  @eln tel_groupe m 0.
+Coercion Groupe_Monoide: Groupe >-> Monoide.
+Global Instance groupe_inverse(m:Groupe):Inverse m:= @eln tel_groupe m 1.
+Definition groupe_inverse_a_gauche(m:Groupe):=  @eln tel_groupe m 3.
+Definition groupe_inverse_a_droite(m:Groupe):=  @eln tel_groupe m 2.
+
+Global Instance groupe_inverse_i(m:Groupe):Inverse m:=
+  groupe_inverse m.
+
+Notation "- x" := (inverse x).
+
+Lemma l5:\/m:Groupe, \/x:m, x+(-x) == 0.
+intros. 
+Time apply groupe_inverse_a_droite.
+Qed.
+
+End Groupe.
+
+(****************************** exemple d'instance *)
 
 Inductive Bool:Type:= true|false.
 Definition plusb(a b:Bool):= if a then if b then false else true else b.
