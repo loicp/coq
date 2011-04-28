@@ -44,16 +44,7 @@ Fixpoint el(t:tel):Type:=
     | Tc T f => Pair (\x:T, el (f x))
   end.
 
-Eval compute in el (Tc (\A : Type, T0)).
-Definition p1:el (Tc (\A : Type, T0)):=
-  pair (\A:Type, Pt) nat pt.
-Definition p2:el (Tc (\A, Tc (\op:A->A->A, T0))):=
-  pair _ (nat:Type) (pair _ plus pt).
-Print p2.
-Definition p4:el (Tc (\x:(el (Tc (\A, Tc (\op:A->A->A, T0)))),T0)):=
-  pair _ p2 pt.
-Unset Printing All.
-
+(****************************** décomposition *)
 Definition tel1(t:tel):=
   match t with
    | T0 => Prop
@@ -83,71 +74,25 @@ Fixpoint teln{t:tel}(e:el t)(n:nat){struct n}:Type:=
    | S n1 => teln (elr e) n1
  end.
 
-Eval compute  -[el] in teln p2 0.
-Eval compute  -[el] in teln p2 1.
-
 Fixpoint eln{t:tel}(e:el t)(n:nat){struct n}:teln e n:=
   match n with 
    | O => el1 e
    | S n1 => eln (elr e) n1
  end.
 
-Eval compute  -[el] in eln p2 0.
-Eval compute  -[el plus] in eln p2 1.
-
-Definition Magmatest:tel:= (Tc (\A, Tc (\op:A->A->A, T0))).
-Definition magmatest:el Magmatest:= pair _ (nat:Type) (pair _ plus pt).
-
 Notation "|| x : T ; P" := (Tc (\x : T, P))(at level 200, x ident, right associativity).  
 Notation "|| x : T" := (Tc (\x : T, T0))(at level 200, x ident, right associativity).  
 Notation "|| '_' : T ; P" := (Tc (\_ : T, P))(at level 200, right associativity).  
 Notation "|| '_' : T" := (Tc (\_ : T, T0))(at level 200, right associativity).
 
-Print Magmatest.
 Notation "\\ a ; b" :=  (pair _ a b)(at level 200, right associativity). 
 Notation "\\ a " :=  (pair _ a pt)(at level 200, right associativity). 
-Print magmatest.
-
-Fixpoint add_tel{t:tel}: (el t -> tel) -> tel:=
-   match t as t0 return (el t0 -> tel) -> tel with
-     | T0 => \ft: el T0 -> tel, ft pt
-     | Tc T f => \ft: el (Tc f) -> tel, 
-         Tc (\x:T, 
-                add_tel (\e: el (f x), ft (pair _ x e)))
-   end.
-
-Fixpoint coerce_tel{t:tel}:\/ft:el t -> tel, el (add_tel ft) -> el t:=
-  match
-    t as t1 return (\/ ft :el t1 -> tel, el (add_tel ft) -> el t1)
-  with
-    | T0 => \ ft : el T0 -> tel, (fun _ : el (add_tel ft) => pt)
-    | Tc T t1 =>
-      \ ft : el (Tc t1) -> tel,
-      (\ e : el (add_tel ft),
-        pair _ (el1 e)
-        (coerce_tel
-          (\ e2 : el (t1 (el1 e)), ft (pair _ (el1 e) e2))
-           (elr e)))
-  end.
-
-Eval compute -[el] in
-  add_tel (\e:el Magmatest, (Tc (\x:el1 e,T0))). 
-
-Eval compute -[el plus] in
-  coerce_tel (\e:el Magmatest,(Tc (\x:el1 e,T0)))
-  (pair _ (nat:Type) (pair _ plus (pair _ 0 pt))).
 
 (****************************** exemples *)
 
 Class Neutre (A : Type) := neutre : A.
-Class Zero (A : Type) := zero : A.
-Notation "0" := zero.
 Class Loi(A:Type):= loi:A->A->A.
-Class Addition (A : Type) := addition : Loi A.
-Notation "_+_" := addition.
-Notation "x + y" := (addition x y).
 Class PROP:=prop:Prop.
-
 Class Relation(A:Type):Type:= relation:A->A->PROP.
 Class Equality (A : Type):= equality : Relation A.
 Notation "_==_" := equality.
@@ -221,72 +166,104 @@ Lemma l1:\/E:Setoide, \/x y:E, x == y -> y == x.
 intros. apply (equivalence_symetrique (setoide_equivalence E)). trivial.
 Qed.
 
-(****************************** magma associatif *)
+(****************************** magma *)
+Section Magma.
 
-Class Associative{A:Setoide}(f:Loi A):PROP:=
-  associative: \/ x y z : A, (f (f x y) z) == (f x (f y z)).
 Class Compatible2{A:Setoide}(f:Loi A):PROP:=
   compatible2: \/ x x1:A, \/ y y1:A, x == x1 et y == y1 -> f x y == f x1 y1.
 
-Definition tel_magmaa:=
+Definition tel_magma:=
   || A : Setoide;
   || op : Loi A;
-  || _ : Associative op;
   || _ : Compatible2 op.
 
-Set Printing All.
-Print tel_magmaa.
-Unset Printing All.
+Class Magma:Type := magma: el tel_magma.
+Global Instance Magma_Setoide(m:Magma):Setoide:=
+  @eln tel_magma m 0.
+Coercion Magma_Setoide: Magma >-> Setoide.
+Time Definition magma_loi(m:Magma):Loi m:= @eln tel_magma m 1. 
+Time Definition magma_loi_compatible(m:Magma):Compatible2 (@magma_loi m):=
+  @eln tel_magma m 2. 
+Global Instance magma_loi_i(m:Magma):Loi m:= magma_loi m.
 
-Class Magmaa:Type := magmaa: el tel_magmaa.
-Instance Magmaa_Setoide(m:Magmaa):Setoide:=
-  @eln tel_magmaa m 0.
-Coercion Magmaa_Setoide: Magmaa >-> Setoide.
-Time Check \m:Magmaa, Loi m.
-Time Check \m:Magmaa, Loi m = @teln tel_magmaa m 1.
+End Magma.
 
-Time Definition magmaa_loi(m:Magmaa):Loi m:= @eln tel_magmaa m 1. 
-
-Time Definition magmaa_loi_assoc(m:Magmaa):Associative (@magmaa_loi m):=
-  @eln tel_magmaa m 2. 
-Instance magmaa_add(m:Magmaa):Loi m:= magmaa_loi m.
-
-Section test.
-Notation "_+_" := loi.
+(****************************** commutatif *)
+Section Magma_commutatif.
 Notation "x + y" := (loi x y).
 
-Lemma l2:\/m:Magmaa, \/x y z:m, (x+y)+z == x+(y+z).
+Class Commutative`{A:Magma}:PROP:=
+  associative: \/ x y: A, x + y == y + x.
+
+Definition tel_magma_commutatif:=
+  || A : Magma;
+  || _ : Commutative.
+
+Class Magma_commutatif:Type := magma_commutatif: el tel_magma_commutatif.
+Global Instance Magma_commutatif_Magma(m:Magma_commutatif):Magma:=
+  @eln tel_magma_commutatif m 0.
+Coercion Magma_commutatif_Magma: Magma_commutatif >-> Magma.
+
+Time Definition magma_commutatif_loi(m:Magma_commutatif):Commutative:=
+  @eln tel_magma_commutatif m 1. 
+
+Lemma l2:\/m:Magma_commutatif, \/x y:m, x + y == y + x.
 intros. 
-Time apply magmaa_loi_assoc. 
+Time apply magma_commutatif_loi.
 Qed.
-End test.
+End Magma_commutatif.
+
+(****************************** magma associatif *)
+
+Section Magma_associatif.
+Notation "x + y" := (loi x y).
+
+Class Associative`{A:Magma}:PROP:=
+  associative: \/ x y z : A, (loi (loi x y) z) == (loi x (loi y z)).
+
+Definition tel_magma_associatif:=
+  || A : Magma;
+  || _ : Associative.
+
+Class Magma_associatif:Type := magma_associatif: el tel_magma_associatif.
+Global Instance Magma_associatif_Magma(m:Magma_associatif):Magma:=
+  @eln tel_magma_associatif m 0.
+Coercion Magma_associatif_Magma: Magma_associatif >-> Magma.
+
+Time Definition magma_associatif_loi(m:Magma_associatif):Associative:=
+  @eln tel_magma_associatif m 1. 
+
+Lemma l2:\/m:Magma_associatif, \/x y z:m, (x+y)+z == x+(y+z).
+intros. 
+Time apply magma_associatif_loi. 
+Qed.
+End Magma_associatif.
 
 (****************************** monoide *)
+Section Monoide.
+Notation "x + y" := (loi x y).
 
-Class Neutre_a_droite{A:Setoide}(f:A->A->A)(e:A):PROP:=
-  neutre_a_droite: \/x:A, (f x e) == x.
-Class Neutre_a_gauche{A:Setoide}(f:A->A->A)(e:A):PROP:=
-  neutre_a_gauche: \/x:A, (f e x) == x.
+Class Neutre_a_droite{A:Magma_associatif}(e:A):PROP:=
+  neutre_a_droite: \/x:A, x + e == x.
+Class Neutre_a_gauche{A:Magma_associatif}(e:A):PROP:=
+  neutre_a_gauche: \/x:A, e + x == x.
 
 Definition tel_monoide:=
-    || m:Magmaa;
+    || m:Magma_associatif;
     || e:Neutre m;
-    || _:Neutre_a_droite (magmaa_loi m) e;
-    || _:Neutre_a_gauche (magmaa_loi m) e.
+    || _:Neutre_a_droite e;
+    || _:Neutre_a_gauche e.
 
 Class Monoide:Type := monoide: el tel_monoide.
-Instance Monoide_Magmaa(m:Monoide): Magmaa:=
+Global Instance Monoide_Magma_associatif(m:Monoide): Magma_associatif:=
   @eln tel_monoide m 0.
-Coercion Monoide_Magmaa: Monoide >-> Magmaa.
-Instance monoide_neutre(m:Monoide):Neutre m:= @eln tel_monoide m 1.
+Coercion Monoide_Magma_associatif: Monoide >-> Magma_associatif.
+Global Instance monoide_neutre(m:Monoide):Neutre m:= @eln tel_monoide m 1.
 Definition monoide_neutre_a_gauche(m:Monoide):=  @eln tel_monoide m 3.
 Definition monoide_neutre_a_droite(m:Monoide):=  @eln tel_monoide m 2.
 
-Instance monoide_neutre_i(m:Monoide):Neutre m:= monoide_neutre m.
+Global Instance monoide_neutre_i(m:Monoide):Neutre m:= monoide_neutre m.
 
-Section test2.
-Notation "_+_" := loi.
-Notation "x + y" := (loi x y).
 Notation "0" := neutre.
 
 Lemma l3:\/m:Monoide, \/x:m, x+0 == x.
@@ -296,9 +273,10 @@ Qed.
 
 Lemma l4:\/m:Monoide, \/x y z:m, (x+y)+z == x+(y+z).
 intros. 
-Time apply magmaa_loi_assoc.
+Time apply magma_associatif_loi_assoc.
 Time Qed. 
-End test2.
+
+End Monoide.
 
 (****************************** groupe *)
 Section Groupe.
@@ -337,6 +315,24 @@ Qed.
 
 End Groupe.
 
+(****************************** anneau *)
+Section Anneau.
+Class Addition(A:Type):= addition:Loi A.
+Class Multiplication(A:Type):= multiplication:Loi A.
+Class Zero(A:Type):= zero:Neutre A.
+Class Un(A:Type):= un:Neutre A.
+Notation "x + y" := (addition x y).
+Notation "0" := zero.
+Notation "x * y" := (multiplication x y).
+Notation "1" := un.
+
+Class Distributive_a_droite{A:Magma_associatif}(op:Loi A):PROP:=
+  distributive_a_droite:\/x y z:A, op (loi x y) z == loi (op x z) (op y z).
+Set Printing All.
+Class Distributive_a_droite{A:Magma_associatif}(op:Loi A):PROP:=
+  distributive_a_droite:\/x y z:A, op (loi x y) z == loi (op x z) (op y z).
+
+
 (****************************** exemple d'instance *)
 
 Inductive Bool:Type:= true|false.
@@ -345,21 +341,21 @@ Lemma plusb_assoc:\/a b c, plusb (plusb a b) c = plusb a (plusb b c).
 induction a;induction b; induction c; simpl; auto.
 Qed.
 
-Definition Bmagmaa: Magmaa:=
+Definition Bmagma_associatif: Magma_associatif:=
    @pair Type Bool _
   (pair plusb _
   (pair plusb_assoc _
   el_T0)).
-Print Bmagmaa.
+Print Bmagma_associatif.
 
 Notation "\\ x ; e1" := (pair x _ e1)(at level 200, right associativity).  
 Notation "\\ x ; " := (pair x _ el_T0)(at level 200, right associativity).  
-Print Bmagmaa.
+Print Bmagma_associatif.
 
-Instance Magmaa_Bool:Magmaa := Bmagmaa.
+Instance Magma_associatif_Bool:Magma_associatif := Bmagma_associatif.
 
-Goal  \/x y z:Bmagmaa, (x+y)+z = x+(y+z).
+Goal  \/x y z:Bmagma_associatif, (x+y)+z = x+(y+z).
 intros. 
-rewrite magmaa_plus_assoc.
+rewrite magma_associatif_plus_assoc.
 trivial.
 Qed.
