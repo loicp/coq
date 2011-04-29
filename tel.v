@@ -56,14 +56,20 @@ case t. intro. exact True.
 simpl. intros T f e. exact pairx.
 Defined.
 
+Definition telr(t:tel):tel1 t -> tel:=
+  match t as t0 return (tel1 t0 -> tel) with
+   | T0 => fun _ : tel1 T0 => T0
+   | Tc T f => \ e, f e
+end.
+(*
 Definition telr{t:tel}:el t -> tel:=
   match t as t0 return (el t0 -> tel) with
    | T0 => fun _ : el T0 => T0
    | Tc T f => \ e, f (el1 e)
 end.
- 
-Definition elr{t:tel}:\/e:el t, el (telr e):=
-  match t as t0 return (\/ e0 :el t0, el (telr e0)) with
+*)
+Definition elr{t:tel}:\/e:el t, el (telr _ (el1 e)):=
+  match t as t0 return (\/ e0 :el t0, el (telr _ (el1 e0))) with
     | T0 => fun _ : el T0 => pt
     | Tc T t0 => \ e0 : el (Tc t0), (@pairfx _ _ e0)
   end.
@@ -186,26 +192,36 @@ Time Definition magma_loi_compatible(m:Magma):Compatible2 (@magma_loi m):=
   @eln tel_magma m 2. 
 Global Instance magma_loi_i(m:Magma):Loi m:= magma_loi m.
 
+Definition tel_magma_sur_setoide`{A:Setoide}:=
+  Eval compute  -[Setoide Loi Setoide_Graphe carrier Compatible2 elr el1] in
+    telr tel_magma A.
+Print tel_magma_sur_setoide.
+
+Time Class Magma_sur_setoide`{A:Setoide}:Type := magma_sur_setoide: el tel_magma_sur_setoide.
+Global Instance Magma_sur_setoide_magma`{A:Setoide}(m:Magma_sur_setoide):Magma:=
+  (@pair Setoide _ A m).
+Coercion Magma_sur_setoide_magma:Magma_sur_setoide>->Magma.
 End Magma.
 
 (****************************** commutatif *)
 Section Magma_commutatif.
-Notation "x + y" := (loi x y).
 
-Class Commutative`{A:Magma}:PROP:=
-  associative: \/ x y: A, x + y == y + x.
+Class Commutative`{A:Setoide}(f:Loi A):PROP:=
+  commutative: \/ x y: A, f x y == f y x.
 
 Definition tel_magma_commutatif:=
   || A : Magma;
-  || _ : Commutative.
+  || _ : Commutative (magma_loi A).
 
 Class Magma_commutatif:Type := magma_commutatif: el tel_magma_commutatif.
 Global Instance Magma_commutatif_Magma(m:Magma_commutatif):Magma:=
   @eln tel_magma_commutatif m 0.
 Coercion Magma_commutatif_Magma: Magma_commutatif >-> Magma.
 
-Time Definition magma_commutatif_loi(m:Magma_commutatif):Commutative:=
+Time Definition magma_commutatif_loi(m:Magma_commutatif):Commutative (magma_loi m):=
   @eln tel_magma_commutatif m 1. 
+
+Notation "x + y" := (loi x y).
 
 Lemma l2:\/m:Magma_commutatif, \/x y:m, x + y == y + x.
 intros. 
@@ -216,43 +232,47 @@ End Magma_commutatif.
 (****************************** magma associatif *)
 
 Section Magma_associatif.
-Notation "x + y" := (loi x y).
 
-Class Associative`{A:Magma}:PROP:=
-  associative: \/ x y z : A, (loi (loi x y) z) == (loi x (loi y z)).
+Class Associative`{A:Setoide}(f:Loi A):PROP:=
+  associative: \/ x y z : A, (f (f x y) z) == (f x (f y z)).
 
 Definition tel_magma_associatif:=
   || A : Magma;
-  || _ : Associative.
+  || _ : Associative (magma_loi A).
 
 Class Magma_associatif:Type := magma_associatif: el tel_magma_associatif.
 Global Instance Magma_associatif_Magma(m:Magma_associatif):Magma:=
   @eln tel_magma_associatif m 0.
 Coercion Magma_associatif_Magma: Magma_associatif >-> Magma.
 
-Time Definition magma_associatif_loi(m:Magma_associatif):Associative:=
+Time Definition magma_associatif_loi(m:Magma_associatif):Associative (magma_loi m):=
   @eln tel_magma_associatif m 1. 
 
-Lemma l2:\/m:Magma_associatif, \/x y z:m, (x+y)+z == x+(y+z).
+Notation "x + y" := (loi x y).
+Lemma l2_:\/m:Magma_associatif, \/x y z:m, (x+y)+z == x+(y+z).
 intros. 
 Time apply magma_associatif_loi. 
 Qed.
+
+Definition tel_magma_associatif_sur_setoide`{A:Setoide}:=
+  || m : Magma_sur_setoide;
+  || _ : Associative (magma_loi m).
+
 End Magma_associatif.
 
 (****************************** monoide *)
 Section Monoide.
-Notation "x + y" := (loi x y).
 
-Class Neutre_a_droite{A:Magma_associatif}(e:A):PROP:=
-  neutre_a_droite: \/x:A, x + e == x.
-Class Neutre_a_gauche{A:Magma_associatif}(e:A):PROP:=
-  neutre_a_gauche: \/x:A, e + x == x.
+Class Neutre_a_droite`{A:Setoide}(f:Loi A)(e:A):PROP:=
+  neutre_a_droite: \/x:A, f x e == x.
+Class Neutre_a_gauche`{A:Setoide}(f:Loi A)(e:A):PROP:=
+  neutre_a_gauche: \/x:A, f e x == x.
 
 Definition tel_monoide:=
     || m:Magma_associatif;
     || e:Neutre m;
-    || _:Neutre_a_droite e;
-    || _:Neutre_a_gauche e.
+    || _:Neutre_a_droite _ e;
+    || _:Neutre_a_gauche _ e.
 
 Class Monoide:Type := monoide: el tel_monoide.
 Global Instance Monoide_Magma_associatif(m:Monoide): Magma_associatif:=
@@ -264,6 +284,7 @@ Definition monoide_neutre_a_droite(m:Monoide):=  @eln tel_monoide m 2.
 
 Global Instance monoide_neutre_i(m:Monoide):Neutre m:= monoide_neutre m.
 
+Notation "x + y" := (loi x y).
 Notation "0" := neutre.
 
 Lemma l3:\/m:Monoide, \/x:m, x+0 == x.
@@ -273,25 +294,27 @@ Qed.
 
 Lemma l4:\/m:Monoide, \/x y z:m, (x+y)+z == x+(y+z).
 intros. 
-Time apply magma_associatif_loi_assoc.
+Time apply magma_associatif_loi.
 Time Qed. 
 
 End Monoide.
 
 (****************************** groupe *)
 Section Groupe.
-Notation "x + y" := (loi x y).
-Notation "0" := neutre.
 
-Class Inverse_a_droite{A:Monoide}(o:A->A):PROP:=
-  inverse_a_droite:\/x:A, x+(o x) == 0.
-Class Inverse_a_gauche{A:Monoide}(o:A->A):PROP:=
-  inverse_a_gauche:\/x:A, (o x)+x == 0.
+Class Inverse_a_droite`{A:Setoide}{f:Loi A}{e:Neutre A}(o:A->A):PROP:=
+  inverse_a_droite:\/x:A, f x (o x) == e.
+Class Inverse_a_gauche`{A:Setoide}{f:Loi A}{e:Neutre A}(o:A->A):PROP:=
+  inverse_a_gauche:\/x:A, f (o x) x == e.
 Class Inverse(A:Type):= inverse:A->A.
+
+Class Compatible{A:Setoide}(f:A->A):PROP:=
+  compatible: \/ x x1:A, x == x1  -> f x == f x1.
 
 Definition tel_groupe:=
     || m:Monoide;
     || o:Inverse m;
+    || _:Compatible o;
     || _:Inverse_a_droite o;
     || _:Inverse_a_gauche o.
 
@@ -300,12 +323,14 @@ Global Instance Groupe_Monoide(m:Groupe): Monoide:=
   @eln tel_groupe m 0.
 Coercion Groupe_Monoide: Groupe >-> Monoide.
 Global Instance groupe_inverse(m:Groupe):Inverse m:= @eln tel_groupe m 1.
-Definition groupe_inverse_a_gauche(m:Groupe):=  @eln tel_groupe m 3.
-Definition groupe_inverse_a_droite(m:Groupe):=  @eln tel_groupe m 2.
+Definition groupe_inverse_a_gauche(m:Groupe):=  @eln tel_groupe m 4.
+Definition groupe_inverse_a_droite(m:Groupe):=  @eln tel_groupe m 3.
 
 Global Instance groupe_inverse_i(m:Groupe):Inverse m:=
   groupe_inverse m.
 
+Notation "x + y" := (loi x y).
+Notation "0" := neutre.
 Notation "- x" := (inverse x).
 
 Lemma l5:\/m:Groupe, \/x:m, x+(-x) == 0.
@@ -315,23 +340,94 @@ Qed.
 
 End Groupe.
 
+(****************************** groupe commutatif *)
+Section Groupe_commutatif.
+
+Definition tel_groupe_commutatif:=
+  || A : Groupe;
+  || _ : Commutative (magma_loi A).
+
+Class Groupe_commutatif:Type := groupe_commutatif: el tel_groupe_commutatif.
+Global Instance Groupe_commutatif_Groupe(m:Groupe_commutatif):Groupe:=
+  @eln tel_groupe_commutatif m 0.
+Coercion Groupe_commutatif_Groupe: Groupe_commutatif >-> Groupe.
+
+Time Definition groupe_commutatif_loi(m:Groupe_commutatif):Commutative (magma_loi m):=
+  @eln tel_groupe_commutatif m 1. 
+
+Notation "x + y" := (loi x y).
+Goal \/m:Groupe_commutatif, \/x y:m, x + y == y + x.
+intros. 
+Time apply groupe_commutatif_loi.
+Qed.
+End Groupe_commutatif.
+
 (****************************** anneau *)
 Section Anneau.
+
+Class Distributive_a_droite`{A:Setoide}(f:Loi A)(g:Loi A):PROP:=
+  distributive_a_droite:\/x y z:A, g (f x y) z == f (g x z) (g y z).
+Set Printing All.
+Class Distributive_a_gauche`{A:Setoide}(f:Loi A)(g:Loi A):PROP:=
+  distributive_a_gauche:\/x y z:A, g (f x y) z == f (g x z) (g y z).
+
+Definition tel_anneau:=
+    || G:Groupe_commutatif;
+    || mult:Loi G;
+    || _ : Compatible2 mult;
+    || _:Associative mult;
+    || un:Neutre G;
+    || _:Neutre_a_droite mult un;
+    || _:Neutre_a_gauche mult un;
+    || _:Distributive_a_droite (magma_loi G) mult;
+    || _:Distributive_a_gauche (magma_loi G) mult.
+
+Class Anneau:Type := anneau: el tel_anneau.
+Global Instance Anneau_Groupe_commutatif(m:Anneau): Groupe_commutatif:=
+  @eln tel_anneau m 0.
+
+Coercion Anneau_Groupe_commutatif: Anneau >-> Groupe_commutatif.
+
+Time Global Instance Anneau_Monoide(m:Anneau): Monoide:=
+  (@pair Magma_associatif _
+    (@pair Magma _ 
+      (@pair Setoide _ m
+        (pair _ (@eln tel_anneau m 1)
+          (pair _ (@eln tel_anneau m 2)
+            pt)))
+      (pair _ (@eln tel_anneau m 3)
+        pt))
+    (pair _ (@eln tel_anneau m 4)
+      (pair _ (@eln tel_anneau m 5)
+        (pair _ (@eln tel_anneau m 6)
+          pt)))).
+(* 33 s *)
+
+
+Definition anneau_distributive_a_gauche(m:Anneau):=  @eln tel_anneau m 3.
+Definition anneau_distributive_a_droite(m:Anneau):=  @eln tel_anneau m 2.
+
+Definition addition_anneau{a:Anneau}:= 
+  magma_loi (Anneau_Groupe a).
+Definition multiplication_anneau{a:Anneau}:= 
+  magma_loi (Anneau_Monoide a).
+
+Notation "x + y" := (addition_anneau x y).
+Notation "x * y" := (multiplication_anneau x y).
+
+Goal \/A:Anneau, \/ x y z:A, (x + y) * z == x * z + y * z.
+
+
+
 Class Addition(A:Type):= addition:Loi A.
 Class Multiplication(A:Type):= multiplication:Loi A.
 Class Zero(A:Type):= zero:Neutre A.
 Class Un(A:Type):= un:Neutre A.
 Notation "x + y" := (addition x y).
 Notation "0" := zero.
+Notation "_*_" := multiplication.
 Notation "x * y" := (multiplication x y).
 Notation "1" := un.
-
-Class Distributive_a_droite{A:Magma_associatif}(op:Loi A):PROP:=
-  distributive_a_droite:\/x y z:A, op (loi x y) z == loi (op x z) (op y z).
-Set Printing All.
-Class Distributive_a_droite{A:Magma_associatif}(op:Loi A):PROP:=
-  distributive_a_droite:\/x y z:A, op (loi x y) z == loi (op x z) (op y z).
-
 
 (****************************** exemple d'instance *)
 
