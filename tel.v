@@ -386,8 +386,25 @@ Definition multiplication_anneau{a:Anneau}:=
 
 End Anneau.
 
+Definition tel_anneau_c:=
+    || A:Setoide;
+    || R: @Anneau A.
+
+Class Anneau_c:Type := anneau_c: el tel_anneau_c.
+Global Instance Anneau_Setoide(m:Anneau_c): Setoide:=
+  @eln tel_anneau_c m 0.
+Global Instance Anneau_c_Anneau(m:Anneau_c): Anneau:=
+  @eln tel_anneau_c m 1.
+
+Coercion Anneau_Setoide: Anneau_c >-> Setoide.
+Coercion Anneau_c_Anneau: Anneau_c >-> Anneau.
 Notation "x + y" := (addition_anneau x y).
 Notation "x * y" := (multiplication_anneau x y).
+
+Goal \/A:Anneau_c, \/ x y z:A, (x + y) * z == x * z + y * z.
+intros. 
+Time apply anneau_distributive_a_droite.
+Qed.
 
 Context`{A:Setoide}.
 
