@@ -465,7 +465,8 @@ End test5.
 
 Inductive Bool:Type:= true|false.
 Definition eqb:Relation Bool:= 
-\ a b:Bool, if a then if b then True else False else if b then False else True.
+\ a b:Bool, if a then if b then True else False
+                 else if b then False else True.
 Lemma t1:Reflexive eqb.
 red.  induction x; simpl; auto. Qed.
 Lemma t2:Symetrique eqb.
@@ -473,14 +474,18 @@ red.  induction x; induction y; simpl; auto. Qed.
 Lemma t3:Transitive eqb.
 red.  induction x; induction y; induction z; simpl;
  unfold conjonction, conj_prop in *; intuition. Qed.
-Check (@pair Type _ Bool eqb):Graphe.
+Check (\\ (Bool:Type); \\ eqb):Graphe.
+Check (\\ t1; \\ t2; \\t3):Equivalence.
+Definition Bool_setoide:=
+ (\\ ((\\ (Bool:Type); \\ eqb):Graphe);
+  \\ ((\\ t1; \\ t2; \\t3):Equivalence)):Setoide.
+
 Definition plusb(a b:Bool):= if a then if b then false else true else b.
 Notation "x + y" := (plusb x y).
 Definition mult(a b:Bool):= if a then b else false.
 Notation "x * y" := (multb x y).
 
 Lemma plusb_assoc:Associative plusb.
-
 induction a;induction b; induction c; simpl; auto.
 Qed.
 
