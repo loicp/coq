@@ -386,6 +386,8 @@ Definition multiplication_anneau{a:Anneau}:=
 
 End Anneau.
 
+Section test.
+
 Notation "x + y" := (addition_anneau x y).
 Notation "x * y" := (multiplication_anneau x y).
 
@@ -395,6 +397,7 @@ Goal \/R:@Anneau A, \/ x y z:A, (x + y) * z == x * z + y * z.
 intros. 
 Time apply anneau_distributive_a_droite.
 Qed.
+End test.
 
 (****************************** exemple d'instance *)
 
