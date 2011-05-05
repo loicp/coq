@@ -302,8 +302,10 @@ Global Instance Monoide_Magma_associatif_(m:Monoide_): Magma_associatif_:=
   @eln tel_monoide_ m 0.
 Coercion Monoide_Magma_associatif_: Monoide_ >-> Magma_associatif_.
 Global Instance monoide_neutre(m:Monoide_):Neutre A:= @eln tel_monoide_ m 1.
-Definition monoide_neutre_a_gauche(m:Monoide_):=  @eln tel_monoide_ m 3.
-Definition monoide_neutre_a_droite(m:Monoide_):=  @eln tel_monoide_ m 2.
+Global Instance monoide_neutre_a_droite(m:Monoide_):Neutre_a_droite _ (@monoide_neutre m):=
+  @eln tel_monoide_ m 2.
+Global Instance monoide_neutre_a_gauche(m:Monoide_):Neutre_a_gauche _ (@monoide_neutre m):=
+  @eln tel_monoide_ m 3.
 End Monoide_.
 
 Definition Monoide:Type := (@On_Setoide_ (@Monoide_)).
@@ -354,8 +356,10 @@ Global Instance Groupe_Monoide(m:Groupe_): Monoide_:=
   @eln tel_groupe_ m 0.
 Coercion Groupe_Monoide: Groupe_ >-> Monoide_.
 Global Instance groupe_inverse(m:Groupe_):Inverse A:= @eln tel_groupe_ m 1.
-Definition groupe_inverse_a_gauche(m:Groupe_):=  @eln tel_groupe_ m 4.
-Definition groupe_inverse_a_droite(m:Groupe_):=  @eln tel_groupe_ m 3.
+Global Instance groupe_inverse_a_droite(m:Groupe_):Inverse_a_droite (@groupe_inverse m):=
+  @eln tel_groupe_ m 3.
+Global Instance groupe_inverse_a_gauche(m:Groupe_):Inverse_a_gauche (@groupe_inverse m):=
+  @eln tel_groupe_ m 4.
 End Groupe_.
 
 Definition Groupe:Type := (@On_Setoide_ (@Groupe_)).
@@ -417,7 +421,7 @@ Context`{A:Setoide}.
 Class Distributive_a_droite(f:Loi A)(g:Loi A):PROP:=
   distributive_a_droite:\/x y z:A, g (f x y) z == f (g x z) (g y z).
 Class Distributive_a_gauche(f:Loi A)(g:Loi A):PROP:=
-  distributive_a_gauche:\/x y z:A, g (f x y) z == f (g x z) (g y z).
+  distributive_a_gauche:\/x y z:A, g z (f x y) == f (g z x) (g z y).
 
 Definition tel_anneau_:=
     || G: @Groupe_commutatif_ A;
@@ -428,10 +432,10 @@ Definition tel_anneau_:=
 Class Anneau_:Type := anneau_: el tel_anneau_.
 Global Instance Anneau_Groupe_commutatif(m:Anneau_): Groupe_commutatif_:=
   @eln tel_anneau_ m 0.
-Coercion Anneau_Groupe_commutatif: Anneau_ >-> Groupe_commutatif_.
+(*Coercion Anneau_Groupe_commutatif: Anneau_ >-> Groupe_commutatif_.*)
 Global Instance Anneau_Monoide(m:Anneau_): Monoide_:=
   @eln tel_anneau_ m 1.
-Coercion Anneau_Monoide: Anneau_ >-> Monoide_.
+(*Coercion Anneau_Monoide: Anneau_ >-> Monoide_.*)
 
 Definition anneau_distributive_a_gauche(m:Anneau_):=  @eln tel_anneau_ m 3.
 Definition anneau_distributive_a_droite(m:Anneau_):=  @eln tel_anneau_ m 2.
@@ -480,30 +484,98 @@ Definition Bool_setoide:=
  (\\ ((\\ (Bool:Type); \\ eqb):Graphe);
   \\ ((\\ t1; \\ t2; \\t3):Equivalence)):Setoide.
 
-Definition plusb(a b:Bool):= if a then if b then false else true else b.
-Notation "x + y" := (plusb x y).
-Definition mult(a b:Bool):= if a then b else false.
-Notation "x * y" := (multb x y).
 
-Lemma plusb_assoc:Associative plusb.
-induction a;induction b; induction c; simpl; auto.
-Qed.
+Definition plusb:Loi Bool_setoide:= \a b, if a then if b then false else true else b.
+Definition multb:Loi Bool_setoide:= \a b, if a then b else false.
 
-Definition Bmagma_associatif: Magma_associatif:=
-   @pair Type Bool _
-  (pair plusb _
-  (pair plusb_assoc _
-  el_T0)).
-Print Bmagma_associatif.
+Lemma t4:Associative plusb.
+red. induction x;induction y; induction z; simpl; reflexivity. Qed.
 
-Notation "\\ x ; e1" := (pair x _ e1)(at level 200, right associativity).  
-Notation "\\ x ; " := (pair x _ el_T0)(at level 200, right associativity).  
-Print Bmagma_associatif.
+Lemma t6: Compatible2 plusb.
+red. induction x;induction x1; induction y; induction y1; simpl;
+unfold conjonction, conj_prop in *; intuition; try reflexivity. Qed.
 
-Instance Magma_associatif_Bool:Magma_associatif := Bmagma_associatif.
+Definition oppb:Inverse Bool_setoide:= \a, a.
+Lemma t8:Compatible oppb.
+red. induction x;induction x1; simpl; auto. Qed.
 
-Goal  \/x y z:Bmagma_associatif, (x+y)+z = x+(y+z).
-intros. 
-rewrite magma_associatif_plus_assoc.
-trivial.
-Qed.
+Lemma t9:@Inverse_a_droite _ plusb false oppb.
+red. induction x; simpl; auto; reflexivity. Qed.
+
+Lemma t10:@Inverse_a_gauche _ plusb false oppb.
+red. induction x; simpl; auto; reflexivity. Qed.
+
+Lemma t11:@Neutre_a_droite _ plusb false.
+red. induction x; simpl; auto; reflexivity. Qed.
+Lemma t12:@Neutre_a_gauche _ plusb false.
+red. induction x; simpl; auto; reflexivity. Qed.
+
+Lemma t13:Commutative plusb.
+red. induction x; induction y; simpl; auto; try reflexivity. Qed.
+
+Time Definition Bool_groupe_additif_:@Groupe_commutatif_ Bool_setoide:=
+let B1 := \\ plusb; \\ t6 in
+let B2 := \\ B1; \\ t4 in
+let B3 := \\ B2; \\ false; \\ t11; \\ t12 in 
+let B4 := \\ B3; \\ oppb; \\ t8; \\ t9; \\ t10 in
+  \\ B4; \\ t13.
+(* 0s *)
+(* alors que le suivant met 37s: *)
+(*
+Time Definition Bool_groupe_additif_:@Groupe_commutatif_ Bool_setoide:=
+  (\\
+      (\\ (\\ (\\ (\\ plusb; \\ t6);
+               \\ t4);
+           \\ false; 
+           \\ t11;
+           \\ t12);
+       \\ oppb;
+       \\ t8;
+       \\ t9;
+       \\ t10);
+  \\ t13).
+*)
+
+Time Definition Bool_groupe_additif:Groupe_commutatif:=
+ (\\ Bool_setoide;
+  \\ Bool_groupe_additif_).
+
+Lemma t5:Associative multb.
+red. induction x;induction y; induction z; simpl; reflexivity. Qed.
+Lemma t7: Compatible2 multb.
+red. induction x;induction x1; induction y; induction y1; simpl;
+unfold conjonction, conj_prop in *; intuition; try reflexivity. Qed.
+
+Lemma t14:@Neutre_a_droite _ multb true.
+red. induction x; simpl; auto; reflexivity. Qed.
+Lemma t15:@Neutre_a_gauche _ multb true.
+red. induction x; simpl; auto; reflexivity. Qed.
+Time Definition Bool_monoide_multiplicatif_: @Monoide_ Bool_setoide:=
+      (\\ (\\ (\\ multb; \\ t7);
+           \\ t5);
+       \\ true; 
+       \\ t14;
+       \\ t15).
+
+Lemma t16:@Distributive_a_droite _ plusb multb.
+red. induction x;induction y; induction z; simpl; reflexivity. Qed.
+Lemma t17:@Distributive_a_gauche _ plusb multb.
+red. induction x;induction y; induction z; simpl; reflexivity. Qed.
+
+Time 
+Definition Bool_anneau:Anneau:=
+  \\ Bool_setoide;
+  \\ (\\ Bool_groupe_additif_;
+      \\ Bool_monoide_multiplicatif_;
+      \\ t16;
+      \\ t17).
+
+Notation "x + y" := (magma_loi (Anneau_Groupe_commutatif Bool_anneau) x y).
+Notation "x * y" := (multiplication_anneau_ x y).
+
+Time Goal \/ x y:Bool_anneau, (x + false) * y == x * y.
+intros. generalize (@groupe_inverse_a_droite _ (Anneau_Groupe_commutatif Bool_anneau)).
+intros. red in H.
+Set Printing All.
+Show.
+ red in H. unfold magma_loi in X. simpl in X. rewrite H.
