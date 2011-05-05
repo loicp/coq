@@ -432,10 +432,10 @@ Definition tel_anneau_:=
 Class Anneau_:Type := anneau_: el tel_anneau_.
 Global Instance Anneau_Groupe_commutatif(m:Anneau_): Groupe_commutatif_:=
   @eln tel_anneau_ m 0.
-(*Coercion Anneau_Groupe_commutatif: Anneau_ >-> Groupe_commutatif_.*)
+Coercion Anneau_Groupe_commutatif: Anneau_ >-> Groupe_commutatif_.
 Global Instance Anneau_Monoide(m:Anneau_): Monoide_:=
   @eln tel_anneau_ m 1.
-(*Coercion Anneau_Monoide: Anneau_ >-> Monoide_.*)
+Coercion Anneau_Monoide: Anneau_ >-> Monoide_.
 
 Definition anneau_distributive_a_gauche(m:Anneau_):=  @eln tel_anneau_ m 3.
 Definition anneau_distributive_a_droite(m:Anneau_):=  @eln tel_anneau_ m 2.
