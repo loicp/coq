@@ -108,12 +108,14 @@ Class Conjonction(A:Type):= conjonction:Loi A.
 Notation "x 'et' y" := (conjonction x y) (at level 80).
 
 (****************************** test *)
+(*
+Section test0.
 Definition t1:= || carrier:Type; || op: Loi carrier.
 Class S1:Type := s1:el t1.
 Definition carrier(m:S1):Type := @eln t1 m 0.
 Coercion carrier:S1 >-> Sortclass.
 Instance S1_loi(m:S1):Loi m := @eln t1 m 1.
-Set Printing All.
+
 Goal \/A:S1, \/ x y:A, (loi x y) = x.
 Admitted.
 
@@ -122,11 +124,14 @@ Class S2:Type := s2:el t2.
 Instance S2_S1(m:S2):S1 := @eln t2 m 0.
 Coercion S2_S1:S2>->S1.
 Instance S2_loi(m:S2):Loi m := @eln t2 m 1.
-Goal \/A:S2, \/ x y:A, (loi x y) = x.
-Admitted.
-Print Loi.
-Eval compute [loi Loi] in @loi.
+Notation "x + y" := (@loi _ (S2_loi _) x y).
+Notation "x * y" := (@loi _ (S1_loi _) x y).
 
+Goal \/A:S2, \/ x y:A, x+y = x*y.
+intros. Set Printing All. Show.
+Admitted.
+End test0.
+*)
 (****************************** graphes *)
 Definition tel_graphe:tel:= 
   || A:Type;
@@ -451,10 +456,10 @@ Definition tel_anneau_:=
 Class Anneau_:Type := anneau_: el tel_anneau_.
 Global Instance Anneau_Groupe_commutatif(m:Anneau_): Groupe_commutatif_:=
   @eln tel_anneau_ m 0.
-Coercion Anneau_Groupe_commutatif: Anneau_ >-> Groupe_commutatif_.
+(*Coercion Anneau_Groupe_commutatif: Anneau_ >-> Groupe_commutatif_.*)
 Global Instance Anneau_Monoide(m:Anneau_): Monoide_:=
   @eln tel_anneau_ m 1.
-Coercion Anneau_Monoide: Anneau_ >-> Monoide_.
+(*Coercion Anneau_Monoide: Anneau_ >-> Monoide_.*)
 
 Definition anneau_distributive_a_gauche(m:Anneau_):=  @eln tel_anneau_ m 3.
 Definition anneau_distributive_a_droite(m:Anneau_):=  @eln tel_anneau_ m 2.
@@ -589,8 +594,8 @@ Definition Bool_anneau:Anneau:=
       \\ t16;
       \\ t17).
 
-Notation "x + y" := (magma_loi _  x y).
-Notation "x * y" := (multiplication_anneau_ x y).
+Notation "x + y" := (magma_loi (Anneau_Groupe_commutatif _) x y).
+Notation "x * y" := (magma_loi (Anneau_Monoide _) x y).
 (*Set Printing All.*)
 Eval compute [el Magma Magma_ tel_magma_
   On_Setoide_ tel_on_setoide_
@@ -610,7 +615,10 @@ Eval compute [el
 *)
 
 Time Goal \/ x y:Bool_anneau, (x + false) * y == x * y.
-intros. generalize (@groupe_inverse_a_droite _ (Anneau_Groupe_commutatif Bool_anneau)).
+intros. Set Printing All.
+Show.
+
+generalize (@groupe_inverse_a_droite _ (Anneau_Groupe_commutatif Bool_anneau)).
 intros. red in H.
 Set Printing All.
 Show.
