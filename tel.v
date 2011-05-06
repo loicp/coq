@@ -107,6 +107,25 @@ Notation "x == y" := (equality x y) (at level 70, no associativity).
 Class Conjonction(A:Type):= conjonction:Loi A.
 Notation "x 'et' y" := (conjonction x y) (at level 80).
 
+(****************************** test *)
+Definition t1:= || carrier:Type; || op: Loi carrier.
+Class S1:Type := s1:el t1.
+Definition carrier(m:S1):Type := @eln t1 m 0.
+Coercion carrier:S1 >-> Sortclass.
+Instance S1_loi(m:S1):Loi m := @eln t1 m 1.
+Set Printing All.
+Goal \/A:S1, \/ x y:A, (loi x y) = x.
+Admitted.
+
+Definition t2:= || cs1:S1; || op2: Loi cs1.
+Class S2:Type := s2:el t2.
+Instance S2_S1(m:S2):S1 := @eln t2 m 0.
+Coercion S2_S1:S2>->S1.
+Instance S2_loi(m:S2):Loi m := @eln t2 m 1.
+Goal \/A:S2, \/ x y:A, (loi x y) = x.
+Admitted.
+Print Loi.
+Eval compute [loi Loi] in @loi.
 
 (****************************** graphes *)
 Definition tel_graphe:tel:= 
@@ -570,12 +589,29 @@ Definition Bool_anneau:Anneau:=
       \\ t16;
       \\ t17).
 
-Notation "x + y" := (magma_loi (Anneau_Groupe_commutatif Bool_anneau) x y).
+Notation "x + y" := (magma_loi _  x y).
 Notation "x * y" := (multiplication_anneau_ x y).
+(*Set Printing All.*)
+Eval compute [el Magma Magma_ tel_magma_
+  On_Setoide_ tel_on_setoide_
+  Setoide tel_setoide
+  Graphe tel_graphe
+  Equivalence tel_equivalence
+ ] in Magma.
+(*
+Eval compute [el
+  Bool_anneau
+  Magma Magma_ tel_magma_
+  On_Setoide_ tel_on_setoide_
+  Setoide tel_setoide
+  Graphe tel_graphe
+  Equivalence tel_equivalence
+ ] in Bool_anneau.
+*)
 
 Time Goal \/ x y:Bool_anneau, (x + false) * y == x * y.
 intros. generalize (@groupe_inverse_a_droite _ (Anneau_Groupe_commutatif Bool_anneau)).
 intros. red in H.
 Set Printing All.
 Show.
- red in H. unfold magma_loi in X. simpl in X. rewrite H.
+simpl. red in H. unfold magma_loi in X. simpl in X. rewrite H.
