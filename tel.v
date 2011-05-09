@@ -110,24 +110,34 @@ Notation "x 'et' y" := (conjonction x y) (at level 80).
 (****************************** test *)
 (*
 Section test0.
-Definition t1:= || carrier:Type; || op: Loi carrier.
+Variable A:Type.
+Definition t1:= || op: Loi A.
 Class S1:Type := s1:el t1.
-Definition carrier(m:S1):Type := @eln t1 m 0.
-Coercion carrier:S1 >-> Sortclass.
-Instance S1_loi(m:S1):Loi m := @eln t1 m 1.
+Instance S1_loi(m:S1):Loi A := @eln t1 m 0.
 
-Goal \/A:S1, \/ x y:A, (loi x y) = x.
+Goal \/m:S1, \/ x y:A, (loi x y) = x.
 Admitted.
 
-Definition t2:= || cs1:S1; || op2: Loi cs1.
+Definition t2:= || cs1:S1; || o2: A.
 Class S2:Type := s2:el t2.
 Instance S2_S1(m:S2):S1 := @eln t2 m 0.
 Coercion S2_S1:S2>->S1.
-Instance S2_loi(m:S2):Loi m := @eln t2 m 1.
-Notation "x + y" := (@loi _ (S2_loi _) x y).
-Notation "x * y" := (@loi _ (S1_loi _) x y).
 
-Goal \/A:S2, \/ x y:A, x+y = x*y.
+
+Definition t3:= || cs2:S2; || o3: A.
+Class S3:Type := s3:el t3.
+Instance S3_S2(m:S3):S2 := @eln t3 m 0.
+Coercion S3_S2:S3>->S2.
+
+Definition t4:= || cs3:S1; || cs4:S2.
+Class S4:Type := s4:el t4.
+Instance S4_S1(m:S4):S1 := @eln t4 m 0.
+Instance S4_S2(m:S4):S2 := @eln t4 m 1.
+
+Notation "x + y" := (S1_loi (S4_S1 _) x y).
+Notation "x * y" := (S1_loi (_ (S4_S2 _)) x y).
+
+Time Goal \/m:S4, \/ x y:A, x+y = x*y.
 intros. Set Printing All. Show.
 Admitted.
 End test0.
@@ -594,8 +604,10 @@ Definition Bool_anneau:Anneau:=
       \\ t16;
       \\ t17).
 
-Notation "x + y" := (magma_loi (Anneau_Groupe_commutatif _) x y).
-Notation "x * y" := (magma_loi (Anneau_Monoide _) x y).
+Notation "x + y" :=
+  (magma_loi (_ (_ (_ (_ (Anneau_Groupe_commutatif _))))) x y).
+Notation "x * y" :=
+  (magma_loi (_ (_ (Anneau_Monoide _))) x y).
 (*Set Printing All.*)
 Eval compute [el Magma Magma_ tel_magma_
   On_Setoide_ tel_on_setoide_
@@ -613,7 +625,10 @@ Eval compute [el
   Equivalence tel_equivalence
  ] in Bool_anneau.
 *)
-
+Check \x:Bool_anneau,
+ (magma_loi (Anneau_Groupe_commutatif _) x x).
+Check \x:Bool_anneau,
+ (magma_loi (Anneau_Monoide _) x x).
 Time Goal \/ x y:Bool_anneau, (x + false) * y == x * y.
 intros. Set Printing All.
 Show.
