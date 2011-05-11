@@ -1,8 +1,6 @@
 (*
 #load "graphics.cma";;
 open Graphics;;
-#use "D:\\Mes Documents\\coq\\phyllotaxie.ml";;
-
 #use "C:\\Users\\pottier\\Documents\\coq\\phyllotaxie.ml";;
 #use "D:\\Mes Documents\\coq\\phyllotaxie.ml";;
 *)
@@ -53,15 +51,18 @@ let angle q p =
      if s > 0. then a +. pi else a -. pi 
   else a
 
+let vitesse = 0.002
+
+(* création périodique *)
 let croissance n =
   let lp = ref [[|1.;0.|]] in
-  open_graph "1000x1000";
+  open_graph "800x800";
   clear_graph ();
-  let c = 500. in
+  let c = 400. in
   let d = 50. in
   while read_key () <> 'd' do () done;
   for i = 1 to n do
-     lp:= List.map (eloignement 0.002) !lp; (* 0.05 bizarre *)
+     lp:= List.map (eloignement vitesse) !lp; 
      let a = potentielmin !lp in
      let p = [|cos a; sin a|] in
 (*     Format.printf "px=%.2f py=%.2f \n" p.(0) p.(1);*)
@@ -73,7 +74,36 @@ let croissance n =
 (*     Format.printf "a=%.2f\n" (angle q p);*)
   done;
   !lp
-;;
-croissance 1;;
-     
+
+(* seuil d'énergie pour création *)
+
+(*
+croissance2 500 9. 0.002;; spirales
+croissance2 500 5. 0.002;; donne 4 points en losange
+croissance2 500 6. 0.002;; donne des verticilles de 20 et 16 a l'exterieur
+croissance2 500 6.1 0.002;; verticilles bruites
+croissance2 1000 6.2 0.002;; verticilles bruites, 3 anneaux
+*)
+let croissance2 n potentiel_creation vitesse =
+  let lp = ref [[|1.;0.|]] in
+  open_graph "800x800";
+  clear_graph ();
+  let c = 400. in
+  let d = 50. in
+  while read_key () <> 'd' do () done;
+  for i = 1 to n do
+     lp:= List.map (eloignement vitesse) !lp; 
+     let a = potentielmin !lp in
+     if a <= potentiel_creation
+     then (
+	   let p = [|cos a; sin a|] in
+	   let q::_ = !lp in
+	   lp := p::!lp;
+	   clear_graph ();
+	   List.iter (fun p -> fill_rect (truncate (c+.d*.p.(0)))
+			  (truncate (c+.d*.p.(1))) 2 2) !lp);
+  done;
+  !lp;
+  ()
+
         
