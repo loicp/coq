@@ -1,7 +1,10 @@
 (*
 #load "graphics.cma";;
 open Graphics;;
+#use "D:\\Mes Documents\\coq\\phyllotaxie.ml";;
+
 #use "C:\\Users\\pottier\\Documents\\coq\\phyllotaxie.ml";;
+#use "D:\\Mes Documents\\coq\\phyllotaxie.ml";;
 *)
 
 let norm2 v =
@@ -37,8 +40,9 @@ let potentielmin lp =
 
 let eloignement k p =
   let np = (*sqrt (norm2 p)*) 1. in
-  [|p.(0) +. (p.(0)/.np) *. k; 
-    p.(1) +. (p.(1)/.np) *. k|]
+  p.(0)<- p.(0) +. (p.(0)/.np) *. k; 
+  p.(1)<- p.(1) +. (p.(1)/.np) *. k;
+  p
 
 let angle q p =
   let pi = 3.14159 in
@@ -51,33 +55,25 @@ let angle q p =
 
 let croissance n =
   let lp = ref [[|1.;0.|]] in
+  open_graph "1000x1000";
+  clear_graph ();
+  let c = 500. in
+  let d = 50. in
+  while read_key () <> 'd' do () done;
   for i = 1 to n do
-     lp:= List.map (eloignement 0.02) !lp; (* 0.05 bizarre *)
+     lp:= List.map (eloignement 0.002) !lp; (* 0.05 bizarre *)
      let a = potentielmin !lp in
      let p = [|cos a; sin a|] in
 (*     Format.printf "px=%.2f py=%.2f \n" p.(0) p.(1);*)
      let q::_ = !lp in
      lp := p::!lp;
-     Format.printf "a=%.2f\n" (angle q p);
+     clear_graph ();
+     List.iter (fun p -> fill_rect (truncate (c+.d*.p.(0)))
+		    (truncate (c+.d*.p.(1))) 2 2) !lp;
+(*     Format.printf "a=%.2f\n" (angle q p);*)
   done;
-  open_graph "";
-  clear_graph ();
-  let c = 200. in
-  let d = 10. in
-  List.iter (fun p -> fill_rect (truncate (c+.d*.p.(0)))
-		 (truncate (c+.d*.p.(1))) 2 2) !lp;
   !lp
 ;;
-(*
-#load "graphics.cma";;
-open Graphics;;
-open_graph "300x300+50-0";;
-moveto 10 10;;
-lineto 10 10;;
-set_color blue;;
-fill_rect 0 0 100 100;;
-
-*)
 croissance 1;;
      
         
