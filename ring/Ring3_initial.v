@@ -40,6 +40,8 @@ try (unfold respectful, Proper; unfold equality; intros; try rewrite H; try rewr
  exact Zmult_plus_distr_l.  intros; apply Zmult_plus_distr_r.  exact Zminus_diag.
 Defined.
 
+Instance ZEquality: @Equality Z:= (@eq Z).
+
 (** Two generic morphisms from Z to (abrbitrary) rings, *)
 (**second one is more convenient for proofs but they are ext. equal*)
 Section ZMORPHISM.
@@ -207,7 +209,7 @@ Lemma gen_phiZ_opp : forall x, [- x] == - [x].
  Proof. intros;subst;gen_reflexivity. Qed.
 
 (*proof that [.] satisfies morphism specifications*)
- Lemma gen_phiZ_morph : (@Ring_morphism (Z:Type) R _ _ _ _ _ _ _ Zr _ _ _ _ _ _ _ _  gen_phiZ) . (* beurk!*)
+Global Instance gen_phiZ_morph : (@Ring_morphism (Z:Type) R _ _ _ _ _ _ _ Zr _ _ _ _ _ _ _ _  gen_phiZ) . (* beurk!*)
  apply Build_Ring_morphism; simpl;try gen_reflexivity.
    apply gen_phiZ_add. intros. rewrite ring_sub_def. 
 replace (x-y) with (x + (-y))%Z. rewrite gen_phiZ_add. 
@@ -217,7 +219,6 @@ reflexivity.
  Defined.
 
 End ZMORPHISM.
-
 
 
 
