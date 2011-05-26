@@ -14,61 +14,61 @@ Require Import Znumtheory.
 Require Export Morphisms Setoid Bool.
 Require Import ZArith.
 Open Scope Z_scope.
-Require Import Algebra_syntax.
-Require Export Ring2.
-Require Import Ring2_polynom.
-Require Import Ring2_initial.
+Require Import Algebra_syntax3.
+Require Export Ring3.
+Require Import Ring3_polynom.
+Require Import Ring3_initial.
 
 
 Set Implicit Arguments.
 
 (* Reification with Type Classes, inspired from B.Grégoire and A.Spiewack *)
 
-Class is_in_list_at (R:Type) (t:R) (l:list R) (i:nat) := {}.
+Class is_in_list_at (R:Type) (t:R) (l:list R) (i:nat).
 Instance  Ifind0 (R:Type) (t:R) l
  : is_in_list_at t (t::l) 0.
 Instance  IfindS (R:Type) (t2 t1:R) l i 
  `{is_in_list_at R t1 l i} 
  : is_in_list_at t1 (t2::l) (S i) | 1.
 
-Class reifyPE (R:Type) (e:PExpr Z) (lvar:list R) (t:R) := {}.
-Instance  reify_zero (R:Type) (RR:Ring R) lvar 
- : reifyPE (PEc 0%Z) lvar ring0.
-Instance  reify_one (R:Type) (RR:Ring R) lvar 
- : reifyPE (PEc 1%Z) lvar ring1.
-Instance  reify_plus (R:Type)  (RR:Ring R)
+Class reifyPE (R:Type) (e:PExpr Z) (lvar:list R) (t:R).
+Instance  reify_zero (R:Type) `{Ring R} lvar 
+ : reifyPE (PEc 0%Z) lvar 0.
+Instance  reify_one (R:Type)  `{Ring R} lvar 
+ : reifyPE (PEc 1%Z) lvar 1.
+Instance  reify_plus (R:Type)  `{Ring R}
   e1 lvar t1 e2 t2 
  `{reifyPE R e1 lvar t1} 
  `{reifyPE R e2 lvar t2} 
- : reifyPE (PEadd e1 e2) lvar (ring_plus t1 t2).
-Instance  reify_mult (R:Type)  (RR:Ring R)
+ : reifyPE (PEadd e1 e2) lvar (t1 + t2).
+Instance  reify_mult (R:Type)  `{Ring R}
   e1 lvar t1 e2 t2 
  `{reifyPE R e1 lvar t1} 
  `{reifyPE R e2 lvar t2}
- : reifyPE (PEmul e1 e2) lvar (ring_mult t1 t2).
-Instance  reify_sub (R:Type) (RR:Ring R) 
+ : reifyPE (PEmul e1 e2) lvar (t1 + t2).
+Instance  reify_sub (R:Type) `{Ring R} 
  e1 lvar t1 e2 t2 
  `{reifyPE R e1 lvar t1} 
  `{reifyPE R e2 lvar t2}
- : reifyPE (PEsub e1 e2) lvar (ring_sub t1 t2).
-Instance  reify_opp (R:Type) (RR:Ring R) 
+ : reifyPE (PEsub e1 e2) lvar (t1 - t2).
+Instance  reify_opp (R:Type) `{Ring R} 
  e1 lvar t1 
  `{reifyPE R e1 lvar t1}
- : reifyPE (PEopp e1) lvar (ring_opp t1).
+ : reifyPE (PEopp e1) lvar (- t1).
 Instance  reify_var (R:Type) t lvar i 
  `{is_in_list_at R t lvar i}
  : reifyPE (PEX Z (P_of_succ_nat i)) lvar t 
  | 100.
 
 Class reifyPElist (R:Type) (lexpr:list (PExpr Z)) (lvar:list R) 
-  (lterm:list R) := {}.
+  (lterm:list R).
 Instance reifyPE_nil (R:Type) lvar 
  : @reifyPElist R nil lvar (@nil R).
 Instance reifyPE_cons (R:Type) e1 lvar t1 lexpr2 lterm2
  `{reifyPE R e1 lvar t1} `{reifyPElist R lexpr2 lvar lterm2} 
  : reifyPElist (e1::lexpr2) lvar (t1::lterm2).
 
-Class is_closed_list T (l:list T) := {}.
+Class is_closed_list T (l:list T).
 Instance Iclosed_nil T 
  : is_closed_list (T:=T) nil.
 Instance Iclosed_cons T t l 
@@ -81,18 +81,15 @@ Definition list_reifyl (R:Type) lexpr lvar lterm
 
 Unset Implicit Arguments.
 
-Instance multiplication_phi_ring{R:Type}{Rr:Ring R} : Multiplication  :=
-  {multiplication x y := ring_mult (gen_phiZ Rr x) y}.
+Instance multiplication_phi_ring{R:Type}`{Ring R} : Multiplication  :=
+  {multiplication x y := (gen_phiZ x) * y}.
 
-(*
-Print HintDb typeclass_instances.
-*)
 (* Reification *)
 
 Ltac lterm_goal g :=
   match g with
-  ring_eq ?t1 ?t2 => constr:(t1::t2::nil)
-  | ring_eq ?t1 ?t2 -> ?g => let lvar :=
+  | ?t1 == ?t2 => constr:(t1::t2::nil)
+  | ?t1 == ?t2 -> ?g => let lvar :=
     lterm_goal g in constr:(t1::t2::lvar)     
   end.
 
@@ -107,7 +104,8 @@ Ltac reify_goal lvar lexpr lterm:=
            set (x:= t);
            change x with 
              (@PEeval Z Zr _ _ (@gen_phiZ_morph _ _) N
-                      (fun n:N => n) (@Ring_theory.pow_N _ ring1 ring_mult)
+                      (fun n:N => n)
+                      (@Ring_theory.pow_N _ ring1 ring_mult)
                       lvar e); 
            clear x;
            reify_goal lvar lexpr1 lterm1
@@ -162,7 +160,7 @@ Lemma Zeqb_ok: forall x y : Z, Zeq_bool x y = true -> x == y.
    the test-suite directory *)
 Section Tests.
  
-Ltac ring2:= 
+Ltac ring3:= 
   unset_ring_notations; intros;
   match goal with
     |- (@ring_eq ?r ?rd _ _ ) =>
@@ -173,19 +171,19 @@ Variable Rr: Ring R.
 Existing Instance Rr.
 
 Goal forall x y z:R, x  == x .
-ring2. 
+ring3. 
 Qed.
 
 Goal forall x y z:R, x * y * z == x * (y * z).
-ring2.
+ring3.
 Qed.
 
 Goal forall x y z:R, [3]* x *([2]* y * z) == [6] * (x * y) * z.
-ring2.
+ring3.
 Qed.
 
 Goal forall x y z:R, 3 * x * (2 * y * z) == 6 * (x * y) * z.
-ring2.
+ring3.
 Qed.
 
 
