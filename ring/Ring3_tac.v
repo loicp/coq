@@ -35,39 +35,12 @@ Instance  IfindS (R:Type) (t2 t1:R) l i
  : is_in_list_at t1 (t2::l) (S i) | 1.
 
 Class reifyPE (R:Type) (e:PExpr Z) (lvar:list R) (t:R).
-Instance  reify_zero (R:Type) `{Ring R} lvar 
- : reifyPE (PEc 0%Z) lvar 0.
-Instance  reify_one (R:Type)  `{Ring R} lvar 
- : reifyPE (PEc 1%Z) lvar 1.
-Instance  reify_plus (R:Type)  `{Ring R}
+
+Instance  reify_plus (R:Type) `{Addition R}
   e1 lvar t1 e2 t2 
  `{reifyPE R e1 lvar t1} 
  `{reifyPE R e2 lvar t2} 
- : reifyPE (PEadd e1 e2) lvar (t1 + t2).
-Instance  reify_mult_ext (R:Type)  `{Ring R}
-  e1 lvar z e2 t2 
- `{reifyPE R e1 lvar (@gen_phiZ _ _ _ _ _ _ z)} 
- `{reifyPE R e2 lvar t2}
- : reifyPE (PEmul e1 e2) lvar
-      (@multiplication Z _ _  z t2).
-Instance  reify_mult (R:Type)  `{Ring R}
-  e1 lvar t1 e2 t2 
- `{reifyPE R e1 lvar t1} 
- `{reifyPE R e2 lvar t2}
- : reifyPE (PEmul e1 e2) lvar (t1 * t2).
-Instance  reify_sub (R:Type) `{Ring R} 
- e1 lvar t1 e2 t2 
- `{reifyPE R e1 lvar t1} 
- `{reifyPE R e2 lvar t2}
- : reifyPE (PEsub e1 e2) lvar (t1 - t2).
-Instance  reify_opp (R:Type) `{Ring R} 
- e1 lvar t1 
- `{reifyPE R e1 lvar t1}
- : reifyPE (PEopp e1) lvar (- t1).
-Instance  reify_pow (R:Type) `{Ring R}
- e1 lvar t1 n 
- `{reifyPE R e1 lvar t1}
- : reifyPE (PEpow e1 n) lvar (@pow_N _ _ _ t1 n).
+ : reifyPE (PEadd e1 e2) lvar (addition t1 t2).
 Instance  reify_var (R:Type) t lvar i 
  `{is_in_list_at R t lvar i}
  : reifyPE (PEX Z (P_of_succ_nat i)) lvar t 
@@ -89,14 +62,15 @@ Instance Iclosed_cons T t l
  : is_closed_list (T:=T) (t::l).
 
 Definition list_reifyl (R:Type) lexpr lvar lterm 
- `{reifyPElist R lexpr lvar lterm}
- `{is_closed_list (T:=R) lvar} := (lvar,lexpr).
+ `{is_closed_list (T:=R) lvar}  `{reifyPElist R lexpr lvar lterm}
+  := (lvar,lexpr).
 
 Unset Implicit Arguments.
 
-
 Lemma comm: forall (R:Type)`{Ring R}(c : Z) (x : R),
   x * (gen_phiZ c) == (gen_phiZ c) * x.
+Admitted.
+(*
 induction c. intros. simpl. gen_rewrite. simpl. intros.
 rewrite <- same_gen.
 induction p. simpl.  gen_rewrite. rewrite IHp. reflexivity.
@@ -108,7 +82,7 @@ gen_rewrite. intro IHp.  rewrite IHp. reflexivity.
 simpl. generalize IHp. clear IHp.
 gen_rewrite. intro IHp.  rewrite IHp. reflexivity.
 simpl.  gen_rewrite. Qed.
-
+*)
 
 (* Reification *)
 
@@ -147,19 +121,19 @@ Lemma Zeqb_ok: forall x y : Z, Zeq_bool x y = true -> x == y.
  Ltac ring_gen :=
    match goal with
      |- ?g => let lterm := lterm_goal g in (* les variables *)
-       match eval red in (list_reifyl (lterm:=lterm)) with
+          idtac "terms:"; idtac lterm;
+        match eval red in (list_reifyl (lterm:=lterm)) with
          | (?fv, ?lexpr) => 
-         (*idtac "variables:";idtac fv;
-           idtac "terms:"; idtac lterm;
-           idtac "reifications:"; idtac lexpr; *)
+          idtac "variables:";idtac fv;
+           idtac "reifications:"; idtac lexpr;
            reify_goal fv lexpr lterm;
            match goal with 
              |- ?g => 
-               apply (@ring_correct Z _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+                apply (@ring_correct Z _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
                        (@gen_phiZ_morph _ _ _ _ _ _ _ _ _)
                  (@comm _ _ _ _ _ _ _ _ _) Zeq_bool Zeqb_ok N (fun n:N => n)
                  (@pow_N _ _ _));
-               [apply mkpow_th; reflexivity
+               [ apply mkpow_th; reflexivity
                  |vm_compute; reflexivity]
            end
        end
@@ -176,14 +150,28 @@ Ltac ring3:=
     |- _ == _  =>
           ring_gen
   end.
+Instance Zplusi:Addition Z:= Zplus.
 
+Goal forall x y:Z, x + y == y + x.
+intros. 
+ring_gen.
+match goal with
+     |- ?g => let lterm := lterm_goal g in (* les variables *)
+          idtac "terms:"; idtac lterm
+end.
+match eval red in (@list_reifyl Z _ _  (x + y :: x :: nil) _ _)
+  with
+         | (?fv, ?lexpr) => 
+          idtac "variables:";idtac fv;
+           idtac "reifications:"; idtac lexpr
+ end.
+
+ring_gen.
+Admitted.
 Context {R:Type}`{Ring R}.
 
-Goal forall x y z:R, x^2  == x * x.
-ring3. 
-Qed.
 
-Goal forall x y z:R, x  == x .
+Goal forall x y z:R, x == x .
 ring3. 
 Qed.
 
