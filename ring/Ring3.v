@@ -68,8 +68,8 @@ Definition ZN(x:Z):=
     |Zpos p | Zneg p => Npos p
 end.
 
-Instance power_ring {R:Type}`{Rr:Ring} : Power:=
-  \x, \y, pow_N x (ZN y).
+Instance power_ring {R:Type}`{Ring R} : Power:=
+  {power x y := @pow_N _ _ _ x (ZN y)}.
 
 (** Interpretation morphisms definition*)
 
